@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mat's Tools - Dés & Compteurs</title>
+    <meta name="description" content="Lanceur de dés et compteurs de scores pour jeux de société">
+    <meta name="theme-color" content="#00d4aa">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mat's Tools">
+    <link rel="manifest" href="manifest.json">
+    <!-- Inline SVG icons as data URIs for apple-touch-icon -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='36' fill='%230a0a0f'/><text x='96' y='130' font-size='110' text-anchor='middle'>🎲</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --bg-secondary: #12121a;
+            --fg: #f0f0f5;
+            --muted: #6b7280;
+            --accent: #00d4aa;
+            --accent-dim: #00a885;
+            --card: rgba(20, 20, 30, 0.8);
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        body.light-mode {
+            --bg: #f8fafc;
+            --bg-secondary: #ffffff;
+            --fg: #1e293b;
+            --muted: #64748b;
+            --card: rgba(255, 255, 255, 0.9);
+            --border: rgba(0, 0, 0, 0.08);
+            --glass: rgba(0, 0, 0, 0.02);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
+        }
+
+        h1, h2, h3, .display-font { font-family: 'Outfit', sans-serif; }
+
+        /* Background Visuals */
+        .bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(80px);
+            opacity: 0.4; animation: float 20s ease-in-out infinite;
+        }
+        body.light-mode .orb { opacity: 0.15; }
+        .orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #00d4aa 0%, transparent 70%); top: -150px; right: -150px; }
+        .orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #7c3aed 0%, transparent 70%); bottom: 10%; left: -100px; animation-delay: -5s; }
+        .orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #ff6b6b 0%, transparent 70%); top: 40%; right: 5%; animation-delay: -12s; }
+        @keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(20px, -20px) scale(1.05); } }
+
+        .grid-pattern {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1;
+        }
+        body.light-mode .grid-pattern { background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); }
+
+        /* Shortcuts Bar */
+        .shortcuts-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(20px);
+            display: flex; justify-content: center; gap: 12px; padding: 10px 20px; z-index: 1000;
+            border-bottom: 1px solid var(--border); transition: background 0.4s ease;
+        }
+        body.light-mode .shortcuts-bar { background: rgba(248, 250, 252, 0.9); }
+        .shortcut-btn {
+            display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+            border: 1px solid var(--border); background: var(--glass);
+            border-radius: 100px; font-weight: 600; cursor: pointer;
+            color: var(--fg); font-size: 0.9rem; transition: all 0.2s;
+        }
+        .shortcut-btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+
+        /* Home Screen */
+        .home-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; padding-top: 70px; }
+        .home-title {
+            font-size: clamp(2.2rem, 7vw, 4rem); font-weight: 900; margin-bottom: 8px; text-align: center;
+            background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: gradient-shift 5s ease infinite; background-size: 200% 200%;
+        }
+        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .home-subtitle { font-size: 1rem; color: var(--muted); margin-bottom: 48px; text-align: center; }
+        .home-cards { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 400px; }
+        .home-card {
+            background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border);
+            border-radius: 20px; padding: 28px; text-align: center; cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
+        }
+        .home-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.15); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+        .home-card-icon { font-size: 3rem; margin-bottom: 12px; }
+        .home-card-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+        .home-card-desc { color: var(--muted); font-size: 0.9rem; }
+
+        /* App Header */
+        .app-header {
+            position: sticky; top: 48px; z-index: 100;
+            background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: background 0.4s ease;
+        }
+        body.light-mode .app-header { background: rgba(248, 250, 252, 0.9); }
+
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .home-btn {
+            background: var(--glass); border: 1px solid var(--border);
+            border-radius: 10px; width: 38px; height: 38px;
+            font-size: 1.1rem; cursor: pointer; color: var(--fg);
+            transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+        }
+        .home-btn:hover { background: rgba(255,255,255,0.1); }
+        .app-logo { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .app-logo.dice { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); }
+        .app-logo.counter { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+        .app-title { font-size: 1.1rem; font-weight: 700; }
+
+        .header-actions { display: flex; gap: 6px; }
+        .icon-btn {
+            background: transparent; border: none; font-size: 1.1rem;
+            cursor: pointer; padding: 6px; border-radius: 8px;
+            color: var(--fg); transition: all 0.2s; position: relative;
+        }
+        .icon-btn:hover { background: var(--glass); }
+        .icon-btn.danger:hover { background: rgba(255, 71, 87, 0.15); color: var(--danger); }
+        
+        /* Undo Badge */
+        .undo-badge { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; opacity: 0; transition: opacity 0.3s; }
+        .icon-btn.has-undo .undo-badge { opacity: 1; }
+
+        /* Main Content */
+        .app-content { padding: 24px; max-width: 1200px; margin: 0 auto; padding-top: 90px; }
+
+        /* Cards & Containers */
+        .card { background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+        
+        /* Buttons */
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+        .btn-secondary { background: var(--glass); color: var(--fg); border: 1px solid var(--border); }
+        .btn-danger { background: linear-gradient(135deg, #ff4757, #ee5a5a); color: white; }
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn:active { transform: scale(0.98); }
+
+        /* FABs (Floating Action Buttons) */
+        .fab {
+            position: fixed; right: 24px; bottom: 24px;
+            width: 64px; height: 64px; border-radius: 50%; border: none;
+            font-size: 1.8rem; cursor: pointer;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100;
+        }
+        .fab.dice { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+        .fab.counter { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; }
+        .fab:hover { transform: scale(1.1) rotate(90deg); }
+        .fab:active { transform: scale(0.95) rotate(90deg); }
+        .fab.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+        /* Tabs */
+        .mode-tabs, .view-selector {
+            display: flex; gap: 6px; margin-bottom: 20px;
+            background: var(--glass); padding: 4px; border-radius: 12px; border: 1px solid var(--border);
+        }
+        .mode-tab, .view-btn {
+            flex: 1; padding: 10px; border: none; background: transparent;
+            border-radius: 8px; font-weight: 600; cursor: pointer;
+            color: var(--muted); font-family: inherit; transition: all 0.2s;
+        }
+        .mode-tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+        .view-btn.active { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; }
+
+        /* Dice Section */
+        .dice-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 50px; padding: 10px; background: var(--glass); border-radius: 10px; border: 1px solid var(--border); align-items: center; }
+        .pool-dice { padding: 8px 14px; border-radius: 8px; color: white; font-weight: 700; display: flex; align-items: center; gap: 6px; animation: pop-in 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .pool-dice-delete { background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 18px; height: 18px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; margin-left: 4px; transition: all 0.2s; }
+        .pool-dice-delete:hover { background: var(--danger); transform: scale(1.2); }
+
+        .quick-dice-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        .quick-dice-btn { flex: 1; min-width: 45px; padding: 10px 6px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; color: white; transition: all 0.2s; font-family: inherit; }
+        .quick-dice-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .quick-dice-btn:active { transform: scale(0.95); }
+
+        /* Player Setup */
+        .player-setup { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .player-setup-header { padding: 10px 14px; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .player-setup-body { background: var(--card); padding: 12px; }
+        .player-dice-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 40px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 8px; }
+        .editable-name { background: rgba(255,255,255,0.1); border: none; border-radius: 6px; padding: 2px 8px; color: white; font-weight: 600; font-family: inherit; cursor: pointer; }
+        .editable-name:hover { background: rgba(255,255,255,0.2); }
+        .name-edit-input { background: white; border: none; border-radius: 6px; padding: 2px 8px; color: black; font-weight: 600; width: 100px; }
+
+        /* Results */
+        .results { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px; }
+        .result-dice { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: 800; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: pop-in 0.3s ease; }
+        .result-total { text-align: center; padding: 20px; background: var(--glass); border-radius: 12px; border: 1px solid var(--border); }
+        .result-total-value { font-family: 'Outfit', sans-serif; font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Combat Results */
+        .combat-player { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; transition: all 0.3s; }
+        .combat-player.winner { border-color: var(--warning); box-shadow: 0 0 20px rgba(255, 165, 2, 0.15); }
+        .combat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .combat-name { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+        .combat-color { width: 10px; height: 10px; border-radius: 50%; }
+        .combat-score { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 900; }
+        .combat-dice-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .combat-dice { padding: 6px 10px; border-radius: 8px; color: white; display: flex; flex-direction: column; align-items: center; font-weight: 700; }
+        .vs-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+        .vs-line { flex: 1; height: 1px; background: var(--border); }
+        .vs-badge { padding: 6px 16px; background: linear-gradient(135deg, #ff6b6b, #ff4757); color: white; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+        .trophy-badge { background: linear-gradient(135deg, #ffd700, #ffa502); color: black; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; margin-left: 8px; }
+
+        /* Counter Grid */
+        .counter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+        .counter-card { position: relative; border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.2s; display: flex; flex-direction: column; min-height: 220px; }
+        .counter-card:hover { transform: translateY(-2px); }
+        .counter-delete-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 0.8rem; opacity: 0.6; transition: all 0.2s; color: white; display: flex; align-items: center; justify-content: center; }
+        .counter-delete-btn:hover { opacity: 1; background: var(--danger); transform: scale(1.1); }
+        
+        .counter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .counter-icon { font-size: 1.5rem; }
+        .counter-name { font-weight: 700; font-size: 1rem; }
+        .counter-value-container { text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+        .counter-value { font-family: 'Outfit', sans-serif; font-size: 3rem; font-weight: 900; }
+        .counter-value.negative { color: var(--danger) !important; }
+        
+        .counter-buttons { display: flex; gap: 4px; margin-bottom: 4px; }
+        .counter-btn { flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.15); border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+        .counter-btn:hover { background: rgba(255,255,255,0.25); }
+        .counter-btn:active { transform: scale(0.95); }
+        
+        /* Counter List - Desktop */
+        .counter-list-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--card); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 8px; transition: all 0.2s; position: relative; }
+        .counter-list-item:hover { border-color: rgba(255,255,255,0.1); }
+        
+        .counter-list-actions { display: flex; flex-direction: column; gap: 2px; margin-right: 8px; }
+        .reorder-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 1rem; transition: all 0.2s; line-height: 1; }
+        .reorder-btn:hover { color: var(--fg); transform: scale(1.2); }
+        
+        .counter-list-icon { font-size: 1.5rem; margin-right: 4px; }
+        .counter-list-name { flex: 1; font-weight: 600; min-width: 80px; }
+        .counter-list-value { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 50px; text-align: center; }
+        .counter-list-value.negative { color: var(--danger); }
+        
+        .counter-list-btns { display: flex; gap: 6px; }
+        .counter-list-btn { width: 32px; height: 32px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.1s; color: white; }
+        
+        .counter-list-delete { background: transparent; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 6px; transition: all 0.2s; margin-left: 4px; }
+        .counter-list-delete:hover { color: var(--danger); transform: scale(1.1); }
+
+        /* Counter Circle */
+        .counter-circle-container { position: relative; width: 300px; height: 300px; margin: 40px auto; }
+        .counter-circle-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .counter-circle-node { position: absolute; width: 70px; height: 70px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+        .counter-circle-node:hover { transform: scale(1.15); z-index: 5; }
+
+        /* Dialogs */
+        .dialog-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; opacity: 0; visibility: hidden; transition: all 0.2s; }
+        .dialog-overlay.show { opacity: 1; visibility: visible; }
+        .dialog { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; max-height: 80vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.2s; }
+        .dialog-overlay.show .dialog { transform: scale(1); }
+        
+        .dialog-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+        .form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--glass); color: var(--fg); font-family: inherit; }
+        .form-input:focus { outline: none; border-color: var(--accent); }
+        
+        .icon-picker, .color-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+        .icon-option { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s; }
+        .icon-option:hover { background: rgba(255,255,255,0.05); }
+        .icon-option.selected { border-color: var(--accent); background: rgba(0, 212, 170, 0.1); }
+        .color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+        .color-option:hover { transform: scale(1.1); }
+        .color-option.selected { border-color: white; transform: scale(1.1); }
+
+        .dialog-actions { display: flex; gap: 10px; margin-top: 24px; }
+        .dialog-actions .btn { flex: 1; }
+
+        .custom-value-dialog { text-align: center; max-width: 300px; }
+        .custom-value-input { width: 100%; padding: 15px; border: 1px solid var(--border); border-radius: 12px; font-size: 2rem; text-align: center; background: var(--glass); color: var(--fg); font-weight: 700; margin-bottom: 20px; font-family: 'Outfit', sans-serif; }
+
+        .confirm-dialog { text-align: center; max-width: 350px; }
+        .confirm-icon { font-size: 3rem; margin-bottom: 12px; }
+        .confirm-message { color: var(--muted); margin-bottom: 20px; }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+        /* Dropdown */
+        .dropdown-container { position: relative; }
+        .dropdown-menu {
+            position: absolute; top: 100%; right: 0;
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: 10px; min-width: 160px; z-index: 1001;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3); display: none;
+            margin-top: 4px; overflow: hidden;
+        }
+        .dropdown-menu.show { display: block; }
+        .dropdown-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; cursor: pointer; transition: background 0.2s;
+            border: none; background: none; width: 100%; text-align: left;
+            color: var(--fg); font-family: inherit; font-size: 0.9rem;
+        }
+        .dropdown-item:hover { background: var(--glass); }
+        .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+        /* Current List Name */
+        .current-list-name { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 16px; }
+        .clear-list { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 18px; height: 18px; color: white; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+
+        /* Responsive - Mobile Optimizations */
+        @media (max-width: 600px) {
+            .shortcuts-bar { padding: 8px 12px; gap: 8px; }
+            .shortcut-btn { padding: 6px 12px; font-size: 0.85rem; }
+            .app-header { padding: 10px 12px; }
+            .app-content { padding: 16px; padding-top: 80px; }
+            .counter-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .counter-card { padding: 12px; min-height: auto; }
+            .counter-value { font-size: 2.5rem; }
+
+            /* Force Single Line for List Items */
+            .counter-list-item {
+                flex-wrap: nowrap; /* Keep everything on one line */
+                padding: 8px 10px;
+                gap: 6px;
+                align-items: center;
+                overflow: hidden; /* Prevent overflow */
+            }
+
+            /* Reorder buttons stacked on the far left */
+            .counter-list-actions {
+                position: static;
+                transform: none;
+                flex-direction: column;
+                background: transparent;
+                margin-right: 4px;
+                gap: 0;
+            }
+            .reorder-btn {
+                font-size: 0.8rem;
+                line-height: 1.1;
+                padding: 2px;
+            }
+
+            /* Compact content */
+            .counter-list-icon { font-size: 1.2rem; margin-right: 0; }
+            .counter-list-name {
+                font-size: 0.9rem;
+                flex: 1;
+                min-width: 0; /* Critical for text-overflow */
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .counter-list-value {
+                font-size: 1.2rem;
+                min-width: 35px;
+                margin: 0 4px;
+                text-align: right;
+            }
+
+            /* Compact Buttons */
+            .counter-list-btns {
+                width: auto;
+                margin-top: 0;
+                gap: 4px;
+                display: flex;
+                align-items: center;
+            }
+            .counter-list-btn {
+                width: 28px; /* Square buttons */
+                height: 28px;
+                font-size: 0.9rem;
+                padding: 0;
+            }
+            /* Override inline style for custom button to make it square */
+            .counter-list-btn.custom-btn {
+                width: 28px !important;
+                padding: 0 !important;
+                font-size: 0.9rem !important;
+            }
+
+            .counter-list-delete {
+                font-size: 0.9rem;
+                padding: 4px;
+                margin-left: 2px;
+            }
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <div class="bg-canvas">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+    <div class="grid-pattern"></div>
+
+    <!-- Shortcuts Bar -->
+    <div class="shortcuts-bar">
+        <button class="shortcut-btn dice" onclick="openApp('dice')">🎲 Dés</button>
+        <button class="shortcut-btn counter" onclick="openApp('counter')">🏆 Compteurs</button>
+        <button id="pwa-install-btn" class="shortcut-btn hidden" style="background: linear-gradient(135deg,#00d4aa22,#7c3aed22); border-color: var(--accent);">📲 Installer</button>
+    </div>
+
+    <!-- Home Screen -->
+    <div id="homeScreen" class="home-screen">
+        <h1 class="home-title">Mat's Tools</h1>
+        <p class="home-subtitle">Vos outils de jeu, tout en un</p>
+        <div class="home-cards">
+            <div class="home-card dice" onclick="openApp('dice')">
+                <div class="home-card-icon">🎲</div>
+                <div class="home-card-title">Lanceur de Dés</div>
+                <div class="home-card-desc">Simple et Combat</div>
+            </div>
+            <div class="home-card counter" onclick="openApp('counter')">
+                <div class="home-card-icon">🏆</div>
+                <div class="home-card-title">Compteurs</div>
+                <div class="home-card-desc">Scores et Réorganisable</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dice App -->
+    <div id="diceApp" class="hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <button class="home-btn" onclick="goHome()">🏠</button>
+                <div class="app-logo dice">🎲</div>
+                <span class="app-title">Dés</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn danger" onclick="clearAllDice()" title="Effacer">🗑️</button>
+                <button class="icon-btn" onclick="toggleDarkMode()" title="Thème">🌙</button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <div class="mode-tabs">
+                <button class="mode-tab active" id="simpleModeBtn" onclick="setDiceMode('simple')">Simple</button>
+                <button class="mode-tab" id="combatModeBtn" onclick="setDiceMode('combat')">Combat</button>
+            </div>
+
+            <!-- Simple Mode -->
+            <div id="simpleModeContent">
+                <div class="card">
+                    <div class="dice-pool" id="dicePool"></div>
+                    <div class="quick-dice-btns">
+                        <button class="quick-dice-btn" style="background: #ff6b6b" onclick="addDiceToPool('D4')">D4</button>
+                        <button class="quick-dice-btn" style="background: #4dabf7" onclick="addDiceToPool('D6')">D6</button>
+                        <button class="quick-dice-btn" style="background: #51cf66" onclick="addDiceToPool('D8')">D8</button>
+                        <button class="quick-dice-btn" style="background: #ffd43b" onclick="addDiceToPool('D10')">D10</button>
+                        <button class="quick-dice-btn" style="background: #da77f2" onclick="addDiceToPool('D12')">D12</button>
+                        <button class="quick-dice-btn" style="background: #748ffc" onclick="addDiceToPool('D20')">D20</button>
+                        <button class="quick-dice-btn" style="background: #f783ac" onclick="addDiceToPool('D100')">D100</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Combat Mode -->
+            <div id="combatModeContent" class="hidden">
+                <div class="card">
+                    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px;">Cliquez sur le nom pour l'éditer.</p>
+                    
+                    <!-- Player 1 -->
+                    <div class="player-setup">
+                        <div class="player-setup-header" style="background: #ff6b6b">
+                            <span>🔴</span>
+                            <span id="player1Name" class="editable-name" onclick="editPlayerName(0)">Joueur 1</span>
+                        </div>
+                        <div class="player-setup-body">
+                            <div class="player-dice-list" id="player1DiceList"></div>
+                            <div class="quick-dice-btns">
+                                <button class="quick-dice-btn" style="background: rgba(255,107,107,0.8)" onclick="addPlayerDice(0, 'D4')">D4</button>
+                                <button class="quick-dice-btn" style="background: rgba(77,171,247,0.8)" onclick="addPlayerDice(0, 'D6')">D6</button>
+                                <button class="quick-dice-btn" style="background: rgba(81,207,102,0.8)" onclick="addPlayerDice(0, 'D8')">D8</button>
+                                <button class="quick-dice-btn" style="background: rgba(255,212,59,0.8)" onclick="addPlayerDice(0, 'D10')">D10</button>
+                                <button class="quick-dice-btn" style="background: rgba(218,119,242,0.8)" onclick="addPlayerDice(0, 'D12')">D12</button>
+                                <button class="quick-dice-btn" style="background: rgba(116,143,252,0.8)" onclick="addPlayerDice(0, 'D20')">D20</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Player 2 -->
+                    <div class="player-setup">
+                        <div class="player-setup-header" style="background: #4dabf7">
+                            <span>🔵</span>
+                            <span id="player2Name" class="editable-name" onclick="editPlayerName(1)">Joueur 2</span>
+                        </div>
+                        <div class="player-setup-body">
+                            <div class="player-dice-list" id="player2DiceList"></div>
+                            <div class="quick-dice-btns">
+                                <button class="quick-dice-btn" style="background: rgba(255,107,107,0.8)" onclick="addPlayerDice(1, 'D4')">D4</button>
+                                <button class="quick-dice-btn" style="background: rgba(77,171,247,0.8)" onclick="addPlayerDice(1, 'D6')">D6</button>
+                                <button class="quick-dice-btn" style="background: rgba(81,207,102,0.8)" onclick="addPlayerDice(1, 'D8')">D8</button>
+                                <button class="quick-dice-btn" style="background: rgba(255,212,59,0.8)" onclick="addPlayerDice(1, 'D10')">D10</button>
+                                <button class="quick-dice-btn" style="background: rgba(218,119,242,0.8)" onclick="addPlayerDice(1, 'D12')">D12</button>
+                                <button class="quick-dice-btn" style="background: rgba(116,143,252,0.8)" onclick="addPlayerDice(1, 'D20')">D20</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="diceResults"></div>
+        </main>
+        <!-- FAB Dice -->
+        <button class="fab dice" id="rollFab" onclick="rollDice()">🎲</button>
+    </div>
+
+    <!-- Counter App -->
+    <div id="counterApp" class="hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <button class="home-btn" onclick="goHome()">🏠</button>
+                <div class="app-logo counter">🏆</div>
+                <span class="app-title">Compteurs</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="undoBtn" onclick="undoAction()" title="Annuler"><span class="undo-badge"></span>↩️</button>
+                <button class="icon-btn danger" onclick="resetAllCounters()" title="Réinitialiser les scores">🔄</button>
+                
+                <div class="dropdown-container">
+                    <button class="icon-btn" onclick="toggleDropdownMenu()">⋯</button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <button class="dropdown-item" onclick="showSaveListDialog(); closeDropdownMenu();">💾 Sauvegarder</button>
+                        <button class="dropdown-item" onclick="showLoadListDialog(); closeDropdownMenu();">📂 Charger</button>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item" onclick="exportData(); closeDropdownMenu();">📤 Exporter</button>
+                        <button class="dropdown-item" onclick="document.getElementById('importFileInput').click(); closeDropdownMenu();">📥 Importer</button>
+                    </div>
+                </div>
+                <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+                
+                <button class="icon-btn" onclick="toggleDarkMode()">🌙</button>
+            </div>
+        </header>
+
+        <main class="app-content">
+            <div class="view-selector">
+                <button class="view-btn active" onclick="setView('grid')">Grid</button>
+                <button class="view-btn" onclick="setView('list')">List</button>
+                <button class="view-btn" onclick="setView('circle')">Circle</button>
+            </div>
+
+            <div id="currentListDisplay" style="text-align: center;"></div>
+            <div id="counterDisplay"></div>
+        </main>
+        <!-- FAB Counter -->
+        <button class="fab counter" onclick="showAddDialog()">+</button>
+    </div>
+
+    <!-- Dialogs -->
+    <div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(event)">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 class="dialog-title" id="dialogTitle">Ajouter un compteur</h3>
+            <div class="form-group">
+                <label class="form-label">Nom</label>
+                <input type="text" class="form-input" id="counterNameInput" placeholder="Nom du joueur">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Icône</label>
+                <div class="icon-picker" id="iconPicker"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Couleur</label>
+                <div class="color-picker" id="colorPicker"></div>
+            </div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="closeDialog()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveCounter()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="customValueOverlay" class="dialog-overlay" onclick="cancelCustomValue(event)">
+        <div class="custom-value-dialog" onclick="event.stopPropagation()">
+            <div class="dialog-title">Modifier la valeur</div>
+            <input type="number" class="custom-value-input" id="customValueInput" placeholder="0" onkeydown="if(event.key==='Enter')applyCustomValue()">
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="cancelCustomValue()">Annuler</button>
+                <button class="btn btn-primary" onclick="applyCustomValue()">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmOverlay" class="dialog-overlay" onclick="cancelConfirm(event)">
+        <div class="confirm-dialog" onclick="event.stopPropagation()">
+            <div class="confirm-icon">⚠️</div>
+            <h3 class="dialog-title">Confirmer</h3>
+            <p class="confirm-message" id="confirmMessage">Êtes-vous sûr ?</p>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="cancelConfirm()">Annuler</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="saveListOverlay" class="dialog-overlay" onclick="closeSaveListDialog(event)">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 class="dialog-title">Sauvegarder la liste</h3>
+            <div class="form-group">
+                <label class="form-label">Nom de la liste</label>
+                <input type="text" class="form-input" id="saveListNameInput" placeholder="Ex: Partie JDR">
+            </div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="closeSaveListDialog()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveCounterList()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadListOverlay" class="dialog-overlay" onclick="closeLoadListDialog(event)">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 class="dialog-title">Charger une liste</h3>
+            <div id="savedListsContainer"></div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="closeLoadListDialog()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ STATE ============
+        let state = {
+            diceMode: 'simple',
+            dicePool: [],
+            playerPools: [[], []],
+            playerNames: ['Joueur 1', 'Joueur 2'],
+            counters: [],
+            savedCounterLists: [],
+            currentListName: null,
+            currentView: 'grid',
+            editingCounterId: null,
+            pendingDelete: null,
+            customValueCounterId: null,
+            selectedColor: null,
+            selectedIcon: null,
+            darkMode: true
+        };
+
+        let undoStack = [];
+
+        // Helpers
+        const COLORS = ['#ff6b6b', '#f783ac', '#e64980', '#be4bdb', '#748ffc', '#4dabf7', '#0ca678', '#51cf66', '#fab005', '#fd7e14'];
+        const ICONS = ['🧙', '🧝', '🧛', '🦸', '🥷', '🧚', '⚔️', '🏹', '🛡️', '🔮', '🐉', '🦄', '🦁', '🐺', '🔥', '💧', '🌿', '⚡', '💀', '🎮', '🎲'];
+        const DICE_COLORS = { 'D4': '#ff6b6b', 'D6': '#4dabf7', 'D8': '#51cf66', 'D10': '#ffd43b', 'D12': '#da77f2', 'D20': '#748ffc', 'D100': '#f783ac' };
+        const DICE_MAX = { 'D4': 4, 'D6': 6, 'D8': 8, 'D10': 10, 'D12': 12, 'D20': 20, 'D100': 100 };
+
+        // ============ SYSTEM ============
+        function loadState() {
+            const saved = localStorage.getItem('diceCounterApp');
+            if (saved) state = { ...state, ...JSON.parse(saved) };
+            if (!state.darkMode) document.body.classList.add('light-mode');
+            updateUndoButton();
+        }
+
+        function saveState() { localStorage.setItem('diceCounterApp', JSON.stringify(state)); }
+
+        function toggleDarkMode() { state.darkMode = !state.darkMode; document.body.classList.toggle('light-mode'); saveState(); }
+
+        // ============ NAVIGATION ============
+        function openApp(app) {
+            document.getElementById('homeScreen').classList.add('hidden');
+            document.getElementById('diceApp').classList.add('hidden');
+            document.getElementById('counterApp').classList.add('hidden');
+            document.getElementById(app + 'App').classList.remove('hidden');
+            
+            if (app === 'dice') { updateDicePoolUI(); updatePlayerDiceUI(0); updatePlayerDiceUI(1); updatePlayerNamesDisplay(); }
+            else renderCounters();
+        }
+
+        function goHome() {
+            document.getElementById('homeScreen').classList.remove('hidden');
+            document.getElementById('diceApp').classList.add('hidden');
+            document.getElementById('counterApp').classList.add('hidden');
+        }
+
+        // ============ UNDO SYSTEM ============
+        function saveForUndo() {
+            undoStack.push(JSON.stringify(state.counters));
+            if (undoStack.length > 10) undoStack.shift();
+            updateUndoButton();
+        }
+
+        function undoAction() {
+            if (undoStack.length === 0) return;
+            const previousState = undoStack.pop();
+            state.counters = JSON.parse(previousState);
+            saveState(); renderCounters(); updateUndoButton();
+        }
+
+        function updateUndoButton() {
+            const btn = document.getElementById('undoBtn');
+            if(!btn) return;
+            if (undoStack.length > 0) btn.classList.add('has-undo');
+            else btn.classList.remove('has-undo');
+        }
+
+        // ============ DICE LOGIC ============
+        function setDiceMode(mode) {
+            state.diceMode = mode;
+            document.getElementById('simpleModeBtn').classList.toggle('active', mode === 'simple');
+            document.getElementById('combatModeBtn').classList.toggle('active', mode === 'combat');
+            document.getElementById('simpleModeContent').classList.toggle('hidden', mode !== 'simple');
+            document.getElementById('combatModeContent').classList.toggle('hidden', mode !== 'combat');
+            document.getElementById('diceResults').innerHTML = '';
+            updateFabState();
+        }
+
+        function addDiceToPool(type) { state.dicePool.push({ type, id: Date.now() }); updateDicePoolUI(); updateFabState(); saveState(); }
+        function removeFromPool(id) { state.dicePool = state.dicePool.filter(d => d.id !== id); updateDicePoolUI(); updateFabState(); saveState(); }
+        
+        function updateDicePoolUI() {
+            const pool = document.getElementById('dicePool');
+            pool.innerHTML = state.dicePool.length === 0 
+                ? '<div style="color:var(--muted); font-size:0.9rem">Cliquez sur les dés pour les ajouter</div>'
+                : state.dicePool.map(d => `<div class="pool-dice" style="background:${DICE_COLORS[d.type]}">${d.type}<button class="pool-dice-delete" onclick="removeFromPool(${d.id})">✕</button></div>`).join('');
+        }
+
+        function addPlayerDice(idx, type) { state.playerPools[idx].push({ type, id: Date.now() }); updatePlayerDiceUI(idx); updateFabState(); saveState(); }
+        function removePlayerDice(idx, id) { state.playerPools[idx] = state.playerPools[idx].filter(d => d.id !== id); updatePlayerDiceUI(idx); updateFabState(); saveState(); }
+        
+        function updatePlayerDiceUI(idx) {
+            const list = document.getElementById(`player${idx+1}DiceList`);
+            list.innerHTML = state.playerPools[idx].length === 0 
+                ? '<div style="color:var(--muted); font-size:0.8rem">Aucun dé</div>'
+                : state.playerPools[idx].map(d => `<div class="pool-dice" style="background:${DICE_COLORS[d.type]}; font-size:0.8em; padding:4px 8px">${d.type}<button class="pool-dice-delete" style="width:14px; height:14px" onclick="removePlayerDice(${idx}, ${d.id})">✕</button></div>`).join('');
+        }
+
+        function editPlayerName(idx) {
+            const span = document.getElementById(`player${idx+1}Name`);
+            const name = state.playerNames[idx];
+            const input = document.createElement('input');
+            input.className = 'name-edit-input';
+            input.value = name;
+            input.onblur = () => { state.playerNames[idx] = input.value || `Joueur ${idx+1}`; saveState(); updatePlayerNamesDisplay(); };
+            input.onkeydown = (e) => { if(e.key === 'Enter') input.blur(); };
+            span.innerHTML = '';
+            span.appendChild(input);
+            input.focus();
+        }
+
+        function updatePlayerNamesDisplay() {
+            document.getElementById('player1Name').textContent = state.playerNames[0];
+            document.getElementById('player2Name').textContent = state.playerNames[1];
+        }
+
+        function clearAllDice() {
+            if (state.diceMode === 'simple') state.dicePool = [];
+            else state.playerPools = [[], []];
+            updateDicePoolUI(); updatePlayerDiceUI(0); updatePlayerDiceUI(1);
+            document.getElementById('diceResults').innerHTML = '';
+            updateFabState(); saveState();
+        }
+
+        function updateFabState() {
+            const fab = document.getElementById('rollFab');
+            if(!fab) return;
+            const canRoll = state.diceMode === 'simple' 
+                ? state.dicePool.length > 0 
+                : state.playerPools[0].length > 0 && state.playerPools[1].length > 0;
+            fab.classList.toggle('disabled', !canRoll);
+        }
+
+        function rollDice() {
+            if (document.getElementById('rollFab').classList.contains('disabled')) return;
+            state.diceMode === 'simple' ? rollSimpleMode() : rollCombatMode();
+        }
+
+        function rollSimpleMode() {
+            const results = state.dicePool.map(d => ({ type: d.type, value: Math.floor(Math.random() * DICE_MAX[d.type]) + 1 }));
+            const total = results.reduce((s, r) => s + r.value, 0);
+            document.getElementById('diceResults').innerHTML = `
+                <div class="card fade-in">
+                    <div class="results">${results.map(r => `<div class="result-dice" style="background:${DICE_COLORS[r.type]}">${r.value}</div>`).join('')}</div>
+                    <div class="result-total">
+                        <div style="font-size:0.9rem; color:var(--muted)">Total</div>
+                        <div class="result-total-value">${total}</div>
+                    </div>
+                </div>`;
+        }
+
+        function rollCombatMode() {
+            const p1 = state.playerPools[0].map(d => ({ type: d.type, value: Math.floor(Math.random() * DICE_MAX[d.type]) + 1 }));
+            const p1T = p1.reduce((s, r) => s + r.value, 0);
+            const p2 = state.playerPools[1].map(d => ({ type: d.type, value: Math.floor(Math.random() * DICE_MAX[d.type]) + 1 }));
+            const p2T = p2.reduce((s, r) => s + r.value, 0);
+            const winner = p1T > p2T ? 1 : (p2T > p1T ? 2 : 0);
+
+            document.getElementById('diceResults').innerHTML = `
+                <div class="combat-player fade-in ${winner === 1 ? 'winner' : ''}">
+                    <div class="combat-header">
+                        <div class="combat-name"><div class="combat-color" style="background:#ff6b6b"></div>${state.playerNames[0]} ${winner === 1 ? '<span class="trophy-badge">🏆 Winner</span>' : ''}</div>
+                        <div class="combat-score" style="color:#ff6b6b">${p1T}</div>
+                    </div>
+                    <div class="combat-dice-row">${p1.map(r => `<div class="combat-dice" style="background:${DICE_COLORS[r.type]}"><span style="font-size:0.7rem">${r.type}</span><span>${r.value}</span></div>`).join('')}</div>
+                </div>
+                <div class="vs-divider"><div class="vs-line"></div><div class="vs-badge">VS</div><div class="vs-line"></div></div>
+                <div class="combat-player fade-in ${winner === 2 ? 'winner' : ''}">
+                    <div class="combat-header">
+                        <div class="combat-name"><div class="combat-color" style="background:#4dabf7"></div>${state.playerNames[1]} ${winner === 2 ? '<span class="trophy-badge">🏆 Winner</span>' : ''}</div>
+                        <div class="combat-score" style="color:#4dabf7">${p2T}</div>
+                    </div>
+                    <div class="combat-dice-row">${p2.map(r => `<div class="combat-dice" style="background:${DICE_COLORS[r.type]}"><span style="font-size:0.7rem">${r.type}</span><span>${r.value}</span></div>`).join('')}</div>
+                </div>
+                ${winner === 0 ? '<div style="text-align:center; margin-top:10px; color:var(--warning)">Égalité !</div>' : ''}`;
+        }
+
+        // ============ COUNTER LOGIC ============
+        function setView(view) {
+            state.currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === view));
+            renderCounters();
+        }
+
+        function renderCounters() {
+            const container = document.getElementById('counterDisplay');
+            updateCurrentListDisplay();
+            if (state.counters.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted)">Aucun compteur.<br>Ajoutez un joueur pour commencer.</div>`;
+                return;
+            }
+            const leader = state.counters.reduce((max, c) => c.value > max.value ? c : max, state.counters[0]);
+            switch(state.currentView) {
+                case 'grid': renderGrid(container, leader); break;
+                case 'list': renderList(container, leader); break;
+                case 'circle': renderCircle(container, leader); break;
+            }
+        }
+
+        function getContrast(hex) {
+            const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+            return ((r*299)+(g*587)+(b*114))/1000 >= 128 ? '#000' : '#fff';
+        }
+
+        function renderGrid(container, leader) {
+            container.innerHTML = `<div class="counter-grid">${state.counters.map(c => `
+                <div class="counter-card" style="background:${c.color}">
+                    <button class="counter-delete-btn" onclick="deleteCounter('${c.id}')">🗑️</button>
+                    <div class="counter-header" style="color:${getContrast(c.color)}">
+                        ${c.icon ? `<span class="counter-icon">${c.icon}</span>` : ''}
+                        <span class="counter-name">${c.name}</span>
+                        ${leader.id === c.id && state.counters.length > 1 ? '<span class="trophy-badge">🏆</span>' : ''}
+                    </div>
+                    <div class="counter-value-container">
+                        <div class="counter-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.value < 0 ? '' : getContrast(c.color)}">${c.value}</div>
+                    </div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', -1)">-1</button>
+                        <button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', -5)">-5</button>
+                        <button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', 1)">+1</button>
+                        <button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', 5)">+5</button>
+                    </div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" style="color:${getContrast(c.color)}; font-size:0.8rem" onclick="showCustomValueDialog('${c.id}')">Custom</button>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        function renderList(container, leader) {
+            container.innerHTML = state.counters.map((c, index) => `
+                <div class="counter-list-item fade-in">
+                    <div class="counter-list-actions">
+                        <button class="reorder-btn" onclick="moveCounter(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.2"' : ''}>▲</button>
+                        <button class="reorder-btn" onclick="moveCounter(${index}, 1)" ${index === state.counters.length - 1 ? 'disabled style="opacity:0.2"' : ''}>▼</button>
+                    </div>
+                    ${c.icon ? `<span class="counter-list-icon">${c.icon}</span>` : ''}
+                    <span class="counter-list-name">${c.name} ${leader.id === c.id && state.counters.length > 1 ? '🏆' : ''}</span>
+                    <span class="counter-list-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.color}">${c.value}</span>
+                    <div class="counter-list-btns">
+                        <button class="counter-list-btn" style="background:${c.color}" onclick="updateCounter('${c.id}', -1)">-</button>
+                        <button class="counter-list-btn" style="background:${c.color}" onclick="updateCounter('${c.id}', 1)">+</button>
+                        <button class="counter-list-btn custom-btn" style="background:${c.color}">?</button>
+                    </div>
+                    <button class="counter-list-delete" onclick="deleteCounter('${c.id}')">🗑️</button>
+                </div>
+            `).join('');
+            
+            // Add event listeners for custom buttons after rendering
+            document.querySelectorAll('.custom-btn').forEach((btn, i) => {
+                btn.onclick = () => showCustomValueDialog(state.counters[i].id);
+            });
+        }
+
+        function renderCircle(container, leader) {
+            const display = state.counters.slice(0, 8);
+            const radius = 110;
+            const total = state.counters.reduce((s, c) => s + c.value, 0);
+            container.innerHTML = `
+                <div class="counter-circle-container">
+                    <div class="counter-circle-center">
+                        <span style="font-size:1.5rem">🎯</span>
+                        <span style="font-size:1.2rem; font-weight:700">${total}</span>
+                        <span style="font-size:0.7rem; color:var(--muted)">Total</span>
+                    </div>
+                    ${display.map((c, i) => {
+                        const angle = (2 * Math.PI * i / display.length) - Math.PI / 2;
+                        const x = 150 + radius * Math.cos(angle);
+                        const y = 150 + radius * Math.sin(angle);
+                        return `<div class="counter-circle-node" style="background:${c.color}; left:${x-35}px; top:${y-35}px;"
+                                    onclick="updateCounter('${c.id}', 1)" oncontextmenu="updateCounter('${c.id}', -1); event.preventDefault();">
+                                    <span style="font-size:1.2rem">${c.icon || '👤'}</span>
+                                    <span style="font-weight:700; color:${getContrast(c.color)}">${c.value}</span>
+                                </div>`;
+                    }).join('')}
+                </div>
+                ${state.counters.length > 8 ? '<p style="text-align:center; color:var(--muted); font-size:0.8rem; margin-top:16px">+ autres joueurs en vue Liste</p>' : ''}`;
+        }
+
+        // Actions
+        function moveCounter(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= state.counters.length) return;
+            saveForUndo();
+            const temp = state.counters[newIndex];
+            state.counters[newIndex] = state.counters[index];
+            state.counters[index] = temp;
+            saveState(); renderCounters();
+        }
+
+        function updateCounter(id, change) {
+            saveForUndo();
+            const c = state.counters.find(c => c.id === id);
+            if (c) { c.value += change; saveState(); renderCounters(); }
+        }
+
+        function deleteCounter(id) {
+            const c = state.counters.find(c => c.id === id);
+            state.pendingDelete = { type: 'counter', id };
+            document.getElementById('confirmMessage').textContent = `Supprimer "${c.name}" ?`;
+            document.getElementById('confirmOverlay').classList.add('show');
+        }
+
+        function resetAllCounters() {
+            if (state.counters.length === 0) return;
+            state.pendingDelete = { type: 'reset' };
+            document.getElementById('confirmMessage').textContent = 'Réinitialiser tous les scores à 0 ?';
+            document.getElementById('confirmOverlay').classList.add('show');
+        }
+
+        // Dialogs
+        function showAddDialog() {
+            state.editingCounterId = null;
+            document.getElementById('dialogTitle').textContent = 'Ajouter un compteur';
+            document.getElementById('counterNameInput').value = '';
+            
+            document.getElementById('iconPicker').innerHTML = ICONS.map(i => `<div class="icon-option" onclick="selectIcon(this, '${i}')">${i}</div>`).join('');
+            document.getElementById('colorPicker').innerHTML = COLORS.map(c => `<div class="color-option" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+            
+            selectColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
+            document.getElementById('dialogOverlay').classList.add('show');
+        }
+
+        function selectColor(c) { state.selectedColor = c; document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('selected', o.style.background === c)); }
+        function selectIcon(e, i) { state.selectedIcon = i; document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected')); e.classList.add('selected'); }
+
+        function saveCounter() {
+            const name = document.getElementById('counterNameInput').value.trim();
+            if (!name) return alert('Nom requis');
+            saveForUndo();
+            state.counters.push({ id: Date.now().toString(), name, icon: state.selectedIcon, color: state.selectedColor, value: 0 });
+            saveState(); closeDialog(); renderCounters();
+        }
+
+        function closeDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('dialogOverlay').classList.remove('show'); }
+
+        function showCustomValueDialog(id) {
+            state.customValueCounterId = id;
+            document.getElementById('customValueInput').value = '';
+            document.getElementById('customValueOverlay').classList.add('show');
+            setTimeout(() => document.getElementById('customValueInput').focus(), 100);
+        }
+
+        function applyCustomValue() {
+            const val = parseInt(document.getElementById('customValueInput').value, 10);
+            if (!isNaN(val)) updateCounter(state.customValueCounterId, val);
+            cancelCustomValue();
+        }
+
+        function cancelCustomValue(e) { if(!e || e.target === e.currentTarget) document.getElementById('customValueOverlay').classList.remove('show'); }
+
+        // Confirm Logic
+        function cancelConfirm(e) { if(!e || e.target === e.currentTarget) document.getElementById('confirmOverlay').classList.remove('show'); }
+        
+        function confirmDelete() {
+            saveForUndo();
+            if (state.pendingDelete.type === 'counter') state.counters = state.counters.filter(c => c.id !== state.pendingDelete.id);
+            else if (state.pendingDelete.type === 'reset') state.counters.forEach(c => c.value = 0);
+            saveState(); renderCounters(); cancelConfirm();
+        }
+
+        // Save/Load Lists
+        function updateCurrentListDisplay() {
+            const el = document.getElementById('currentListDisplay');
+            el.innerHTML = state.currentListName ? `<span class="current-list-name">📋 ${state.currentListName} <button class="clear-list" onclick="state.currentListName=null; saveState(); updateCurrentListDisplay();">✕</button></span>` : '';
+        }
+
+        function showSaveListDialog() {
+            if (state.counters.length === 0) return alert('Aucun compteur');
+            document.getElementById('saveListNameInput').value = state.currentListName || '';
+            document.getElementById('saveListOverlay').classList.add('show');
+        }
+
+        function closeSaveListDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('saveListOverlay').classList.remove('show'); }
+
+        function saveCounterList() {
+            const name = document.getElementById('saveListNameInput').value.trim();
+            if (!name) return alert('Nom requis');
+            const data = { id: Date.now().toString(), name, counters: JSON.parse(JSON.stringify(state.counters)), savedAt: new Date().toISOString() };
+            const idx = state.savedCounterLists.findIndex(l => l.name === name);
+            if (idx >= 0) { if(confirm('Remplacer la liste existante ?')) state.savedCounterLists[idx] = data; else return; }
+            else state.savedCounterLists.push(data);
+            state.currentListName = name;
+            saveState(); closeSaveListDialog(); updateCurrentListDisplay();
+        }
+
+        function showLoadListDialog() {
+            const el = document.getElementById('savedListsContainer');
+            el.innerHTML = state.savedCounterLists.length === 0 ? '<div style="color:var(--muted); text-align:center">Aucune liste</div>' :
+                state.savedCounterLists.map(l => `<div class="saved-list-item" onclick="loadCounterList('${l.id}')">
+                    <div><div class="saved-list-name">${l.name}</div><div style="font-size:0.8rem; color:var(--muted)">${l.counters.length} compteurs</div></div>
+                    <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem" onclick="event.stopPropagation(); deleteSavedList('${l.id}')">🗑️</button>
+                </div>`).join('');
+            document.getElementById('loadListOverlay').classList.add('show');
+        }
+
+        function closeLoadListDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('loadListOverlay').classList.remove('show'); }
+
+        function loadCounterList(id) {
+            const list = state.savedCounterLists.find(l => l.id === id);
+            if (!list) return;
+            if (state.counters.length > 0 && !confirm('Remplacer les compteurs actuels ?')) return;
+            saveForUndo();
+            state.counters = JSON.parse(JSON.stringify(list.counters));
+            state.currentListName = list.name;
+            saveState(); renderCounters(); updateCurrentListDisplay(); closeLoadListDialog();
+        }
+
+        function deleteSavedList(id) {
+            if (confirm('Supprimer cette sauvegarde ?')) {
+                state.savedCounterLists = state.savedCounterLists.filter(l => l.id !== id);
+                saveState(); showLoadListDialog();
+            }
+        }
+
+        function exportData() {
+            const blob = new Blob([JSON.stringify({ counters: state.counters, lists: state.savedCounterLists }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `mats-tools-backup.json`;
+            a.click();
+        }
+
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (confirm('Importer ces données ? Cela remplacera les données actuelles.')) {
+                        saveForUndo();
+                        if (data.counters) state.counters = data.counters;
+                        if (data.lists) state.savedCounterLists = data.lists;
+                        saveState(); renderCounters(); alert('Importé !');
+                    }
+                } catch (err) { alert('Erreur fichier'); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // Dropdown
+        function toggleDropdownMenu() { document.getElementById('dropdownMenu').classList.toggle('show'); }
+        function closeDropdownMenu() { document.getElementById('dropdownMenu').classList.remove('show'); }
+        document.addEventListener('click', e => { if (!e.target.closest('.dropdown-container')) closeDropdownMenu(); });
+
+        // Init
+        loadState();
+
+        // ── PWA: Service Worker Registration ──
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW registered:', reg.scope))
+                    .catch(err => console.warn('SW registration failed:', err));
+            });
+        }
+
+        // ── PWA: Install Banner ──
+        let deferredPrompt = null;
+        const installBtn = document.getElementById('pwa-install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installBtn) installBtn.classList.remove('hidden');
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installBtn.classList.add('hidden');
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            if (installBtn) installBtn.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
