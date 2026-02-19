@@ -236,7 +236,7 @@
         
         .counter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
         .counter-icon { font-size: 1.5rem; }
-        .counter-name { font-weight: 700; font-size: 1rem; }
+        .counter-name { font-weight: 700; font-size: 1rem; text-align: left; flex: 1; }
         .counter-value-container { text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
         .counter-value { font-family: 'Outfit', sans-serif; font-size: 3rem; font-weight: 900; }
         .counter-value.negative { color: var(--danger) !important; }
@@ -283,13 +283,18 @@
         .form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--glass); color: var(--fg); font-family: inherit; }
         .form-input:focus { outline: none; border-color: var(--accent); }
         
-        .icon-picker, .color-picker { display: flex; flex-wrap: wrap; gap: 8px; }
-        .icon-option { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 8px; background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s; }
-        .icon-option:hover { background: rgba(255,255,255,0.05); }
-        .icon-option.selected { border-color: var(--accent); background: rgba(0, 212, 170, 0.1); }
+        .icon-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+        .icon-picker::-webkit-scrollbar { width: 4px; }
+        .icon-picker::-webkit-scrollbar-track { background: transparent; }
+        .icon-picker::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .icon-section-label { grid-column: 1 / -1; font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 0 2px; }
+        .color-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 8px; }
+        .icon-option { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s; }
+        .icon-option:hover { background: rgba(255,255,255,0.05); transform: scale(1.1); }
+        .icon-option.selected { border-color: var(--accent); background: rgba(0, 212, 170, 0.15); box-shadow: 0 0 0 2px rgba(0,212,170,0.3); }
         .color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
         .color-option:hover { transform: scale(1.1); }
-        .color-option.selected { border-color: white; transform: scale(1.1); }
+        .color-option.selected { border-color: white; transform: scale(1.1); box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
 
         .dialog-actions { display: flex; gap: 10px; margin-top: 24px; }
         .dialog-actions .btn { flex: 1; }
@@ -412,6 +417,121 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ── Notes App ── */
+        .home-card.notes { border-color: rgba(255, 214, 0, 0.2); }
+        .home-card.notes:hover { border-color: rgba(255, 214, 0, 0.4); box-shadow: 0 15px 40px rgba(255,214,0,0.08); }
+
+        .notes-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .note-card {
+            border-radius: 16px; padding: 16px;
+            cursor: pointer; position: relative;
+            transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+            border: 1px solid rgba(0,0,0,0.08);
+            min-height: 100px;
+            display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .note-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+        .note-card:active { transform: scale(0.99); }
+
+        .note-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .note-card-title { font-weight: 700; font-size: 1rem; flex: 1; color: rgba(0,0,0,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .note-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .note-action-btn {
+            background: rgba(0,0,0,0.12); border: none; border-radius: 8px;
+            width: 30px; height: 30px; cursor: pointer; font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.15s; color: rgba(0,0,0,0.7);
+        }
+        .note-action-btn:hover { background: rgba(0,0,0,0.22); transform: scale(1.1); }
+        .note-action-btn.danger:hover { background: rgba(200,0,0,0.25); color: #c00; }
+
+        .note-card-preview {
+            font-size: 0.88rem; color: rgba(0,0,0,0.65);
+            line-height: 1.5; flex: 1;
+            overflow: hidden;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+        }
+        .note-card-date { font-size: 0.72rem; color: rgba(0,0,0,0.45); text-align: right; margin-top: 4px; }
+
+        /* Note Editor */
+        .note-editor-overlay {
+            position: fixed; inset: 0; z-index: 3000;
+            display: flex; flex-direction: column;
+            transition: opacity 0.2s; opacity: 0; visibility: hidden;
+        }
+        .note-editor-overlay.show { opacity: 1; visibility: visible; }
+
+        .note-editor-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top));
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background: inherit;
+        }
+        .note-editor-title-input {
+            flex: 1; background: transparent; border: none; outline: none;
+            font-size: 1.1rem; font-weight: 700; color: rgba(0,0,0,0.85);
+            font-family: inherit;
+        }
+        .note-editor-title-input::placeholder { color: rgba(0,0,0,0.35); }
+
+        .note-editor-body {
+            flex: 1; width: 100%; padding: 16px;
+            background: transparent; border: none; outline: none; resize: none;
+            font-size: 1rem; line-height: 1.7; color: rgba(0,0,0,0.8);
+            font-family: inherit; overflow-y: auto;
+        }
+        .note-editor-body::placeholder { color: rgba(0,0,0,0.3); }
+
+        .note-editor-footer {
+            padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+            border-top: 1px solid rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: space-between; gap: 8px;
+            background: inherit;
+            overflow-x: auto;
+        }
+
+        .note-color-swatches { display: flex; gap: 6px; flex-wrap: nowrap; }
+        .note-swatch {
+            width: 26px; height: 26px; border-radius: 50%;
+            border: 2px solid transparent; cursor: pointer;
+            transition: all 0.15s; flex-shrink: 0;
+        }
+        .note-swatch.active { border-color: rgba(0,0,0,0.5); transform: scale(1.2); }
+        .note-swatch:hover { transform: scale(1.15); }
+
+        .note-editor-save-btn {
+            background: rgba(0,0,0,0.15); border: none; border-radius: 10px;
+            padding: 8px 18px; font-weight: 700; cursor: pointer;
+            font-family: inherit; font-size: 0.9rem; color: rgba(0,0,0,0.75);
+            white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+        }
+        .note-editor-save-btn:hover { background: rgba(0,0,0,0.22); }
+
+        .notes-empty {
+            text-align: center; padding: 60px 20px;
+            color: var(--muted);
+        }
+        .notes-empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+        .notes-empty-text { font-size: 1rem; }
+
+        .notes-search {
+            width: 100%; padding: 11px 14px;
+            border: 1px solid var(--border); border-radius: 12px;
+            background: var(--glass); color: var(--fg);
+            font-family: inherit; font-size: 0.95rem;
+            margin-bottom: 16px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .notes-search:focus { border-color: #ffd43b; }
+
+        .notes-count { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; }
+
+        @media (max-width: 600px) {
+            .note-card { padding: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -427,6 +547,7 @@
     <div class="shortcuts-bar">
         <button class="shortcut-btn dice" onclick="openApp('dice')">🎲 Dés</button>
         <button class="shortcut-btn counter" onclick="openApp('counter')">🏆 Compteurs</button>
+        <button class="shortcut-btn" onclick="openApp('notes')" style="border-color:rgba(255,214,0,0.4)">📝 Notes</button>
         <button id="pwa-install-btn" class="shortcut-btn hidden" style="background: linear-gradient(135deg,#00d4aa22,#7c3aed22); border-color: var(--accent);">📲 Installer</button>
     </div>
 
@@ -444,6 +565,11 @@
                 <div class="home-card-icon">🏆</div>
                 <div class="home-card-title">Compteurs</div>
                 <div class="home-card-desc">Scores et Réorganisable</div>
+            </div>
+            <div class="home-card notes" onclick="openApp('notes')">
+                <div class="home-card-icon">📝</div>
+                <div class="home-card-title">Notes</div>
+                <div class="home-card-desc">Créer, organiser, retrouver</div>
             </div>
         </div>
     </div>
@@ -544,6 +670,7 @@
                 <span class="app-title">Compteurs</span>
             </div>
             <div class="header-actions">
+                <button class="icon-btn" onclick="sortCountersDesc()" title="Trier par score décroissant">↓🔢</button>
                 <button class="icon-btn" id="undoBtn" onclick="undoAction()" title="Annuler"><span class="undo-badge"></span>↩️</button>
                 <button class="icon-btn danger" onclick="resetAllCounters()" title="Réinitialiser les scores">🔄</button>
                 
@@ -575,6 +702,40 @@
         </main>
         <!-- FAB Counter -->
         <button class="fab counter" onclick="showAddDialog()">+</button>
+    </div>
+
+    <!-- Notes App -->
+    <div id="notesApp" class="hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <button class="home-btn" onclick="goHome()">🏠</button>
+                <div class="app-logo" style="background:linear-gradient(135deg,#ffd43b,#fab005)">📝</div>
+                <span class="app-title">Notes</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="toggleDarkMode()">🌙</button>
+            </div>
+        </header>
+        <main class="app-content">
+            <input class="notes-search" type="search" id="notesSearch" placeholder="🔍 Rechercher une note…" oninput="renderNotes()" autocomplete="off">
+            <div id="notesCount" class="notes-count"></div>
+            <div id="notesList"></div>
+        </main>
+        <!-- FAB Notes -->
+        <button class="fab" style="background:linear-gradient(135deg,#ffd43b,#fab005);color:#000" onclick="openNoteEditor(null)">+</button>
+    </div>
+
+    <!-- Note Editor (full-screen overlay) -->
+    <div id="noteEditorOverlay" class="note-editor-overlay">
+        <div class="note-editor-header">
+            <button class="home-btn" onclick="closeNoteEditor()" style="flex-shrink:0; background:rgba(0,0,0,0.15); color:rgba(0,0,0,0.7); border-color:rgba(0,0,0,0.15);">←</button>
+            <input class="note-editor-title-input" id="noteEditorTitle" type="text" placeholder="Titre de la note…" maxlength="60">
+            <button class="note-editor-save-btn" onclick="saveNote()" style="flex-shrink:0">✓ Sauver</button>
+        </div>
+        <textarea class="note-editor-body" id="noteEditorBody" placeholder="Commencez à écrire…"></textarea>
+        <div class="note-editor-footer">
+            <div class="note-color-swatches" id="noteColorSwatches"></div>
+        </div>
     </div>
 
     <!-- Dialogs -->
@@ -663,14 +824,51 @@
             customValueCounterId: null,
             selectedColor: null,
             selectedIcon: null,
-            darkMode: true
+            darkMode: true,
+            notes: []
         };
 
         let undoStack = [];
 
         // Helpers
-        const COLORS = ['#ff6b6b', '#f783ac', '#e64980', '#be4bdb', '#748ffc', '#4dabf7', '#0ca678', '#51cf66', '#fab005', '#fd7e14'];
-        const ICONS = ['🧙', '🧝', '🧛', '🦸', '🥷', '🧚', '⚔️', '🏹', '🛡️', '🔮', '🐉', '🦄', '🦁', '🐺', '🔥', '💧', '🌿', '⚡', '💀', '🎮', '🎲'];
+        const COLORS = [
+            // Rouges & roses
+            '#ff4757', '#ff6b81', '#ff6b6b', '#f783ac', '#e64980',
+            // Violets
+            '#be4bdb', '#9c36b5', '#7c3aed', '#5f3dc4', '#748ffc',
+            // Bleus
+            '#339af0', '#4dabf7', '#22b8cf', '#15aabf', '#0ca678',
+            // Verts
+            '#51cf66', '#2f9e44', '#94d82d', '#66a80f', '#a9e34b',
+            // Jaunes & oranges
+            '#ffd43b', '#fab005', '#fd7e14', '#f76707', '#ff922b',
+            // Neutres chauds
+            '#e8590c', '#c92a2a', '#862e9c'
+        ];
+        const ICONS = [
+            // ── Personnages ──
+            '🧙','🧝','🧛','🦸','🥷','🧚','🧜','🧟','👹','👺','👻','🤴','👸','🧑‍⚔️','🪄','🧿',
+            // ── Armes & Combat ──
+            '⚔️','🗡️','🏹','🛡️','🪃','🔱','⚙️','💣','🪓','🔫','🗡️','🧨',
+            // ── Magie & Mystère ──
+            '🔮','🪄','✨','💫','🌀','🔯','☄️','🌙','⭐','💎','🏺','📜','🗺️','🧿','🕯️','🔭',
+            // ── Créatures ──
+            '🐉','🦄','🦁','🐺','🦊','🦅','🐍','🦂','🦇','🐗','🦖','🦕','🐲','🦋','🐙','🦑',
+            // ── Nature & Éléments ──
+            '🔥','💧','🌿','⚡','🌊','🌪️','🌑','❄️','🌋','💨','🍄','🌸','🍀','☘️','🌾','🪨',
+            // ── Ressources & Économie ──
+            '💰','💎','🪙','🏆','👑','🗝️','📦','🧪','⚗️','🧲','🪤','🔑',
+            // ── Jeux de société ──
+            '🎲','🎯','🃏','♟️','🀄','🎴','🎪','🎭','🎠','🎡','🎢','🎰',
+            // ── Points & Scores ──
+            '⭐','🌟','💥','❤️','🖤','💜','💙','💚','💛','🧡','❤️‍🔥','💔',
+            // ── Lieux & Bâtiments ──
+            '🏰','🗼','⛩️','🏯','🕌','🏛️','⛺','🗽','🌉','🏔️','🗻','🏝️',
+            // ── Objets & Équipement ──
+            '🎒','🧳','👜','💼','🪬','🧸','🪆','🎁','📿','🏺','🪞','🧭',
+            // ── Temps & Actions ──
+            '⏳','⌛','🕐','📯','🔔','🎺','🥁','🎵','💬','💭','🔍','📊'
+        ];
         const DICE_COLORS = { 'D4': '#ff6b6b', 'D6': '#4dabf7', 'D8': '#51cf66', 'D10': '#ffd43b', 'D12': '#da77f2', 'D20': '#748ffc', 'D100': '#f783ac' };
         const DICE_MAX = { 'D4': 4, 'D6': 6, 'D8': 8, 'D10': 10, 'D12': 12, 'D20': 20, 'D100': 100 };
 
@@ -691,16 +889,19 @@
             document.getElementById('homeScreen').classList.add('hidden');
             document.getElementById('diceApp').classList.add('hidden');
             document.getElementById('counterApp').classList.add('hidden');
+            document.getElementById('notesApp').classList.add('hidden');
             document.getElementById(app + 'App').classList.remove('hidden');
             
             if (app === 'dice') { updateDicePoolUI(); updatePlayerDiceUI(0); updatePlayerDiceUI(1); updatePlayerNamesDisplay(); }
-            else renderCounters();
+            else if (app === 'counter') renderCounters();
+            else if (app === 'notes') renderNotes();
         }
 
         function goHome() {
             document.getElementById('homeScreen').classList.remove('hidden');
             document.getElementById('diceApp').classList.add('hidden');
             document.getElementById('counterApp').classList.add('hidden');
+            document.getElementById('notesApp').classList.add('hidden');
         }
 
         // ============ UNDO SYSTEM ============
@@ -867,8 +1068,7 @@
                     <button class="counter-delete-btn" onclick="deleteCounter('${c.id}')">🗑️</button>
                     <div class="counter-header" style="color:${getContrast(c.color)}">
                         ${c.icon ? `<span class="counter-icon">${c.icon}</span>` : ''}
-                        <span class="counter-name">${c.name}</span>
-                        ${leader.id === c.id && state.counters.length > 1 ? '<span class="trophy-badge">🏆</span>' : ''}
+                        <span class="counter-name" style="text-align:left;flex:1">${c.name}</span>
                     </div>
                     <div class="counter-value-container">
                         <div class="counter-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.value < 0 ? '' : getContrast(c.color)}">${c.value}</div>
@@ -894,7 +1094,7 @@
                         <button class="reorder-btn" onclick="moveCounter(${index}, 1)" ${index === state.counters.length - 1 ? 'disabled style="opacity:0.2"' : ''}>▼</button>
                     </div>
                     ${c.icon ? `<span class="counter-list-icon">${c.icon}</span>` : ''}
-                    <span class="counter-list-name">${c.name} ${leader.id === c.id && state.counters.length > 1 ? '🏆' : ''}</span>
+                    <span class="counter-list-name">${c.name}</span>
                     <span class="counter-list-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.color}">${c.value}</span>
                     <div class="counter-list-btns">
                         <button class="counter-list-btn" style="background:${c.color}" onclick="updateCounter('${c.id}', -1)">-</button>
@@ -937,6 +1137,12 @@
         }
 
         // Actions
+        function sortCountersDesc() {
+            saveForUndo();
+            state.counters.sort((a, b) => b.value - a.value);
+            saveState(); renderCounters();
+        }
+
         function moveCounter(index, direction) {
             const newIndex = index + direction;
             if (newIndex < 0 || newIndex >= state.counters.length) return;
@@ -968,12 +1174,32 @@
         }
 
         // Dialogs
+        const ICON_CATEGORIES = [
+            { label: 'Personnages', icons: ['🧙','🧝','🧛','🦸','🥷','🧚','🧜','🧟','👹','👺','👻','🤴','👸','🧑‍⚔️','🪄','🧿'] },
+            { label: 'Armes & Combat', icons: ['⚔️','🗡️','🏹','🛡️','🪃','🔱','⚙️','💣','🪓','🔫','🧨'] },
+            { label: 'Magie & Mystère', icons: ['🔮','✨','💫','🌀','🔯','☄️','🌙','⭐','💎','🏺','📜','🗺️','🕯️','🔭'] },
+            { label: 'Créatures', icons: ['🐉','🦄','🦁','🐺','🦊','🦅','🐍','🦂','🦇','🐗','🦖','🦕','🐲','🦋','🐙','🦑'] },
+            { label: 'Éléments & Nature', icons: ['🔥','💧','🌿','⚡','🌊','🌪️','🌑','❄️','🌋','💨','🍄','🌸','🍀','☘️','🌾','🪨'] },
+            { label: 'Ressources', icons: ['💰','💎','🪙','🏆','👑','🗝️','📦','🧪','⚗️','🧲','🔑'] },
+            { label: 'Jeux', icons: ['🎲','🎯','🃏','♟️','🀄','🎴','🎪','🎭','🎠','🎡','🎢','🎰'] },
+            { label: 'Points & Vies', icons: ['⭐','🌟','💥','❤️','🖤','💜','💙','💚','💛','🧡','❤️‍🔥','💔'] },
+            { label: 'Lieux', icons: ['🏰','🗼','⛩️','🏯','🕌','🏛️','⛺','🗽','🌉','🏔️','🗻','🏝️'] },
+            { label: 'Objets', icons: ['🎒','🧳','🪬','🧸','🪆','🎁','📿','🪞','🧭','🔍','📊','📯'] },
+        ];
+
+        function renderIconPicker() {
+            return ICON_CATEGORIES.map(cat =>
+                `<div class="icon-section-label">${cat.label}</div>` +
+                cat.icons.map(i => `<div class="icon-option" onclick="selectIcon(this, '${i}')">${i}</div>`).join('')
+            ).join('');
+        }
+
         function showAddDialog() {
             state.editingCounterId = null;
             document.getElementById('dialogTitle').textContent = 'Ajouter un compteur';
             document.getElementById('counterNameInput').value = '';
             
-            document.getElementById('iconPicker').innerHTML = ICONS.map(i => `<div class="icon-option" onclick="selectIcon(this, '${i}')">${i}</div>`).join('');
+            document.getElementById('iconPicker').innerHTML = renderIconPicker();
             document.getElementById('colorPicker').innerHTML = COLORS.map(c => `<div class="color-option" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
             
             selectColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
@@ -1103,6 +1329,127 @@
         function toggleDropdownMenu() { document.getElementById('dropdownMenu').classList.toggle('show'); }
         function closeDropdownMenu() { document.getElementById('dropdownMenu').classList.remove('show'); }
         document.addEventListener('click', e => { if (!e.target.closest('.dropdown-container')) closeDropdownMenu(); });
+
+        // ============ NOTES ============
+        const NOTE_COLORS = [
+            '#fff9c4', '#fce4ec', '#e8f5e9', '#e3f2fd', '#f3e5f5',
+            '#fff3e0', '#e0f7fa', '#fbe9e7', '#f1f8e9', '#ede7f6',
+            '#ffecb3', '#dcedc8', '#b3e5fc', '#f8bbd0', '#d7ccc8'
+        ];
+
+        let editingNoteId = null;
+        let currentNoteColor = NOTE_COLORS[0];
+
+        function renderNotes() {
+            const query = (document.getElementById('notesSearch')?.value || '').toLowerCase().trim();
+            const notes = (state.notes || []).filter(n =>
+                !query || n.title.toLowerCase().includes(query) || n.body.toLowerCase().includes(query)
+            );
+            const count = document.getElementById('notesCount');
+            const list = document.getElementById('notesList');
+            if (count) count.textContent = notes.length === 0 ? '' : `${notes.length} note${notes.length > 1 ? 's' : ''}`;
+            if (!list) return;
+            if ((state.notes || []).length === 0) {
+                list.innerHTML = `<div class="notes-empty"><div class="notes-empty-icon">📝</div><div class="notes-empty-text">Aucune note.<br>Appuyez sur <strong>+</strong> pour commencer.</div></div>`;
+                return;
+            }
+            if (notes.length === 0) {
+                list.innerHTML = `<div class="notes-empty"><div class="notes-empty-icon">🔍</div><div class="notes-empty-text">Aucun résultat.</div></div>`;
+                return;
+            }
+            list.innerHTML = `<div class="notes-list">${notes.map(n => {
+                const preview = n.body.replace(/\n/g, ' ').trim();
+                const date = new Date(n.updatedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+                return `<div class="note-card" style="background:${n.color}" onclick="openNoteEditor('${n.id}')">
+                    <div class="note-card-header">
+                        <div class="note-card-title">${escapeHtml(n.title || 'Sans titre')}</div>
+                        <div class="note-card-actions">
+                            <button class="note-action-btn danger" onclick="event.stopPropagation(); deleteNote('${n.id}')" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                    ${preview ? `<div class="note-card-preview">${escapeHtml(preview)}</div>` : ''}
+                    <div class="note-card-date">${date}</div>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function openNoteEditor(id) {
+            editingNoteId = id;
+            const overlay = document.getElementById('noteEditorOverlay');
+            const titleInput = document.getElementById('noteEditorTitle');
+            const bodyInput = document.getElementById('noteEditorBody');
+
+            if (id) {
+                const note = (state.notes || []).find(n => n.id === id);
+                if (!note) return;
+                titleInput.value = note.title;
+                bodyInput.value = note.body;
+                currentNoteColor = note.color;
+            } else {
+                titleInput.value = '';
+                bodyInput.value = '';
+                currentNoteColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+            }
+
+            applyNoteEditorColor(currentNoteColor);
+            buildNoteSwatches();
+            overlay.classList.add('show');
+            setTimeout(() => (id ? bodyInput : titleInput).focus(), 120);
+        }
+
+        function buildNoteSwatches() {
+            const container = document.getElementById('noteColorSwatches');
+            container.innerHTML = NOTE_COLORS.map(c =>
+                `<div class="note-swatch ${c === currentNoteColor ? 'active' : ''}" style="background:${c}" onclick="pickNoteColor('${c}')"></div>`
+            ).join('');
+        }
+
+        function pickNoteColor(c) {
+            currentNoteColor = c;
+            applyNoteEditorColor(c);
+            buildNoteSwatches();
+        }
+
+        function applyNoteEditorColor(c) {
+            const overlay = document.getElementById('noteEditorOverlay');
+            overlay.style.background = c;
+        }
+
+        function saveNote() {
+            const title = document.getElementById('noteEditorTitle').value.trim();
+            const body = document.getElementById('noteEditorBody').value.trim();
+            if (!title && !body) { closeNoteEditor(); return; }
+            if (!state.notes) state.notes = [];
+            if (editingNoteId) {
+                const note = state.notes.find(n => n.id === editingNoteId);
+                if (note) { note.title = title; note.body = body; note.color = currentNoteColor; note.updatedAt = Date.now(); }
+            } else {
+                state.notes.unshift({ id: Date.now().toString(), title, body, color: currentNoteColor, createdAt: Date.now(), updatedAt: Date.now() });
+            }
+            saveState();
+            closeNoteEditor();
+            renderNotes();
+        }
+
+        function closeNoteEditor() {
+            document.getElementById('noteEditorOverlay').classList.remove('show');
+            editingNoteId = null;
+        }
+
+        function deleteNote(id) {
+            if (!confirm('Supprimer cette note ?')) return;
+            state.notes = (state.notes || []).filter(n => n.id !== id);
+            saveState(); renderNotes();
+        }
+
+        // Close editor on back button (Android)
+        window.addEventListener('popstate', () => {
+            if (document.getElementById('noteEditorOverlay').classList.contains('show')) closeNoteEditor();
+        });
 
         // Init
         loadState();

@@ -1,10 +1,12 @@
 // Mat's Tools - Service Worker
 // Cache-first strategy for full offline support
 
-const CACHE_NAME = 'matstools-v1';
+const CACHE_NAME = 'matstools-v2';
 const ASSETS = [
     './Matstools.html',
     './manifest.json',
+    './icon-192.png',
+    './icon-512.png',
     'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap',
 ];
 
