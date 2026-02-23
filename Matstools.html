@@ -769,10 +769,13 @@
                 <span class="app-title">Notes</span>
             </div>
             <div class="header-actions">
+                <button class="icon-btn" title="Sauvegarder" onclick="showSaveNotesDialog()">💾</button>
+                <button class="icon-btn" title="Charger" onclick="showLoadNotesDialog()">📂</button>
                 <button class="icon-btn" onclick="toggleDarkMode()">🌙</button>
             </div>
         </header>
         <main class="app-content">
+            <div id="notesCurrentListDisplay" style="margin-bottom:8px;"></div>
             <input class="notes-search" type="search" id="notesSearch" placeholder="🔍 Rechercher une note…" oninput="renderNotes()" autocomplete="off">
             <div id="notesCount" class="notes-count"></div>
             <div id="notesList"></div>
@@ -880,6 +883,33 @@
         </div>
     </div>
 
+    <!-- Notes Save Dialog -->
+    <div id="saveNotesOverlay" class="dialog-overlay" onclick="closeSaveNotesDialog(event)">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 class="dialog-title">Sauvegarder les notes</h3>
+            <div id="existingNotesSavesContainer" style="margin-bottom:14px;"></div>
+            <div class="form-group">
+                <label class="form-label">Nom de la sauvegarde</label>
+                <input type="text" class="form-input" id="saveNotesNameInput" placeholder="Ex: Campagne JDR">
+            </div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="closeSaveNotesDialog()">Annuler</button>
+                <button class="btn btn-primary" onclick="saveNotesList()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes Load Dialog -->
+    <div id="loadNotesOverlay" class="dialog-overlay" onclick="closeLoadNotesDialog(event)">
+        <div class="dialog" onclick="event.stopPropagation()">
+            <h3 class="dialog-title">Charger des notes</h3>
+            <div id="savedNotesListsContainer"></div>
+            <div class="dialog-actions">
+                <button class="btn btn-secondary" onclick="closeLoadNotesDialog()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <div id="playerEditOverlay" class="dialog-overlay" onclick="closePlayerEditDialog(event)">
         <div class="dialog" onclick="event.stopPropagation()">
             <h3 class="dialog-title" id="playerEditTitle">Joueur</h3>
@@ -909,6 +939,8 @@
             counters: [],
             savedCounterLists: [],
             currentListName: null,
+            savedNotesLists: [],
+            currentNotesListName: null,
             currentView: 'grid',
             editingCounterId: null,
             pendingDelete: null,
@@ -968,6 +1000,7 @@
             const saved = localStorage.getItem('diceCounterApp');
             if (saved) state = { ...state, ...JSON.parse(saved) };
             if (!state.playerColors) state.playerColors = ['#ff6b6b', '#4dabf7'];
+            if (!state.savedNotesLists) state.savedNotesLists = [];
             if (!state.darkMode) document.body.classList.add('light-mode');
             updateUndoButton();
         }
@@ -994,7 +1027,7 @@
                 restoreCounterView();
                 renderCounters();
             }
-            else if (app === 'notes') renderNotes();
+            else if (app === 'notes') { renderNotes(); updateNotesCurrentListDisplay(); }
         }
 
         function restoreCounterView() {
@@ -1806,6 +1839,103 @@
         function toggleDropdownMenu() { document.getElementById('dropdownMenu').classList.toggle('show'); }
         function closeDropdownMenu() { document.getElementById('dropdownMenu').classList.remove('show'); }
         document.addEventListener('click', e => { if (!e.target.closest('.dropdown-container')) closeDropdownMenu(); });
+
+        // ============ NOTES SAVE/LOAD ============
+        function updateNotesCurrentListDisplay() {
+            const el = document.getElementById('notesCurrentListDisplay');
+            if (!el) return;
+            el.innerHTML = state.currentNotesListName
+                ? `<span class="current-list-name">📋 ${state.currentNotesListName} <button class="clear-list" onclick="state.currentNotesListName=null; saveState(); updateNotesCurrentListDisplay();">✕</button></span>`
+                : '';
+        }
+
+        function showSaveNotesDialog() {
+            if (!state.notes || state.notes.length === 0) return alert('Aucune note à sauvegarder');
+            document.getElementById('saveNotesNameInput').value = state.currentNotesListName || '';
+            renderExistingNotesSaves();
+            document.getElementById('saveNotesOverlay').classList.add('show');
+        }
+
+        function renderExistingNotesSaves() {
+            const el = document.getElementById('existingNotesSavesContainer');
+            if (!el) return;
+            if (!state.savedNotesLists || state.savedNotesLists.length === 0) { el.innerHTML = ''; return; }
+            el.innerHTML = `<div style="margin-bottom:8px;">
+                <div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Mettre à jour une sauvegarde</div>
+                <div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
+                    ${state.savedNotesLists.map(l => {
+                        const date = new Date(l.savedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+                        const isCurrent = l.name === state.currentNotesListName;
+                        return `<div onclick="selectNotesSaveToUpdate('${l.name}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid ${isCurrent ? 'var(--accent)' : 'var(--border)'};background:${isCurrent ? 'rgba(0,212,170,0.08)' : 'var(--glass)'};cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${isCurrent ? 'var(--accent)' : 'var(--border)'}'">
+                            <div>
+                                <div style="font-weight:600;font-size:0.9rem;">${l.name} ${isCurrent ? '<span style="font-size:0.7rem;color:var(--accent);">● actuelle</span>' : ''}</div>
+                                <div style="font-size:0.75rem;color:var(--muted);">${l.notes.length} note${l.notes.length > 1 ? 's' : ''} · ${date}</div>
+                            </div>
+                            <span style="font-size:0.8rem;color:var(--muted);">✏️</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <div style="height:1px;background:var(--border);margin:12px 0;"></div>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Nouvelle sauvegarde</div>
+            </div>`;
+        }
+
+        function selectNotesSaveToUpdate(name) {
+            document.getElementById('saveNotesNameInput').value = name;
+            document.getElementById('saveNotesNameInput').focus();
+        }
+
+        function closeSaveNotesDialog(e) {
+            if (!e || e.target === e.currentTarget) document.getElementById('saveNotesOverlay').classList.remove('show');
+        }
+
+        function saveNotesList() {
+            const name = document.getElementById('saveNotesNameInput').value.trim();
+            if (!name) return alert('Nom requis');
+            const data = { id: Date.now().toString(), name, notes: JSON.parse(JSON.stringify(state.notes)), savedAt: new Date().toISOString() };
+            if (!state.savedNotesLists) state.savedNotesLists = [];
+            const idx = state.savedNotesLists.findIndex(l => l.name === name);
+            if (idx >= 0) { data.id = state.savedNotesLists[idx].id; state.savedNotesLists[idx] = data; }
+            else state.savedNotesLists.push(data);
+            state.currentNotesListName = name;
+            saveState(); closeSaveNotesDialog(); updateNotesCurrentListDisplay();
+        }
+
+        function showLoadNotesDialog() {
+            const el = document.getElementById('savedNotesListsContainer');
+            if (!state.savedNotesLists || state.savedNotesLists.length === 0) {
+                el.innerHTML = '<div style="color:var(--muted); text-align:center; padding:16px;">Aucune sauvegarde</div>';
+            } else {
+                el.innerHTML = state.savedNotesLists.map(l => `
+                    <div class="saved-list-item" onclick="loadNotesList('${l.id}')">
+                        <div>
+                            <div class="saved-list-name">${l.name}</div>
+                            <div style="font-size:0.8rem; color:var(--muted)">${l.notes.length} note${l.notes.length > 1 ? 's' : ''} · ${new Date(l.savedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'})}</div>
+                        </div>
+                        <button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem" onclick="event.stopPropagation(); deleteSavedNotesList('${l.id}')">🗑️</button>
+                    </div>`).join('');
+            }
+            document.getElementById('loadNotesOverlay').classList.add('show');
+        }
+
+        function closeLoadNotesDialog(e) {
+            if (!e || e.target === e.currentTarget) document.getElementById('loadNotesOverlay').classList.remove('show');
+        }
+
+        function loadNotesList(id) {
+            const list = (state.savedNotesLists || []).find(l => l.id === id);
+            if (!list) return;
+            if (!confirm(`Charger "${list.name}" ? Les notes actuelles seront remplacées.`)) return;
+            state.notes = JSON.parse(JSON.stringify(list.notes));
+            state.currentNotesListName = list.name;
+            saveState(); renderNotes(); updateNotesCurrentListDisplay(); closeLoadNotesDialog();
+        }
+
+        function deleteSavedNotesList(id) {
+            if (!confirm('Supprimer cette sauvegarde ?')) return;
+            state.savedNotesLists = state.savedNotesLists.filter(l => l.id !== id);
+            saveState(); showLoadNotesDialog();
+        }
 
         // ============ NOTES ============
         const NOTE_COLORS = [
