@@ -688,7 +688,7 @@
             <div id="simpleModeContent">
                 <div class="card">
                     <div class="dice-pool" id="dicePool"></div>
-                    <div class="quick-dice-btns" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;">
+                    <div class="quick-dice-btns" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
                         <button class="quick-dice-btn" style="background: #20c997" onclick="addDiceToPool('D3')">D3</button>
                         <button class="quick-dice-btn" style="background: #ff6b6b" onclick="addDiceToPool('D4')">D4</button>
                         <button class="quick-dice-btn" style="background: #4dabf7" onclick="addDiceToPool('D6')">D6</button>
@@ -697,6 +697,8 @@
                         <button class="quick-dice-btn" style="background: #da77f2" onclick="addDiceToPool('D12')">D12</button>
                         <button class="quick-dice-btn" style="background: #748ffc" onclick="addDiceToPool('D20')">D20</button>
                         <button class="quick-dice-btn" style="background: #f783ac" onclick="addDiceToPool('D100')">D100</button>
+                        <button class="quick-dice-btn" style="background: #ff9f43" onclick="addDiceToPool('DFATE')">Fate</button>
+                        <button class="quick-dice-btn" style="background: #a29bfe" onclick="addDiceToPool('DFU')">Fu</button>
                     </div>
                 </div>
             </div>
@@ -992,8 +994,18 @@
             // ── Temps & Actions ──
             '⏳','⌛','🕐','📯','🔔','🎺','🥁','🎵','💬','💭','🔍','📊'
         ];
-        const DICE_COLORS = { 'D3': '#20c997', 'D4': '#ff6b6b', 'D6': '#4dabf7', 'D8': '#51cf66', 'D10': '#ffd43b', 'D12': '#da77f2', 'D20': '#748ffc', 'D100': '#f783ac' };
-        const DICE_MAX = { 'D3': 3, 'D4': 4, 'D6': 6, 'D8': 8, 'D10': 10, 'D12': 12, 'D20': 20, 'D100': 100 };
+        const DICE_COLORS = { 'D3': '#20c997', 'D4': '#ff6b6b', 'D6': '#4dabf7', 'D8': '#51cf66', 'D10': '#ffd43b', 'D12': '#da77f2', 'D20': '#748ffc', 'D100': '#f783ac', 'DFATE': '#ff9f43', 'DFU': '#a29bfe' };
+        const DICE_MAX = { 'D3': 3, 'D4': 4, 'D6': 6, 'D8': 8, 'D10': 10, 'D12': 12, 'D20': 20, 'D100': 100, 'DFATE': 6, 'DFU': 6 };
+        const DFATE_FACES = ['+', '+', '−', '−', '', ''];
+        const DFU_FACES = ['oui', 'oui,\nmais', 'oui,\net', 'non', 'non,\nmais', 'non,\net'];
+        // Special dice that return text, not numbers
+        const SPECIAL_DICE = ['DFATE', 'DFU'];
+        function rollSpecialDie(type) {
+            const idx = Math.floor(Math.random() * 6);
+            if (type === 'DFATE') return DFATE_FACES[idx];
+            if (type === 'DFU') return DFU_FACES[idx];
+            return '?';
+        }
 
         // ============ SYSTEM ============
         function loadState() {
@@ -1129,7 +1141,7 @@
                     </div>
                     <div class="player-setup-body">
                         <div class="player-dice-list" id="playerDiceList_${idx}"></div>
-                        <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:6px;">
+                        <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:6px;">
                             <button class="quick-dice-btn" style="background:rgba(32,201,151,0.8)" onclick="addPlayerDice(${idx},'D3')">D3</button>
                             <button class="quick-dice-btn" style="background:rgba(255,107,107,0.8)" onclick="addPlayerDice(${idx},'D4')">D4</button>
                             <button class="quick-dice-btn" style="background:rgba(77,171,247,0.8)" onclick="addPlayerDice(${idx},'D6')">D6</button>
@@ -1138,6 +1150,8 @@
                             <button class="quick-dice-btn" style="background:rgba(218,119,242,0.8)" onclick="addPlayerDice(${idx},'D12')">D12</button>
                             <button class="quick-dice-btn" style="background:rgba(116,143,252,0.8)" onclick="addPlayerDice(${idx},'D20')">D20</button>
                             <button class="quick-dice-btn" style="background:rgba(247,131,172,0.8)" onclick="addPlayerDice(${idx},'D100')">D100</button>
+                            <button class="quick-dice-btn" style="background:rgba(255,159,67,0.8)" onclick="addPlayerDice(${idx},'DFATE')">Fate</button>
+                            <button class="quick-dice-btn" style="background:rgba(162,155,254,0.8)" onclick="addPlayerDice(${idx},'DFU')">Fu</button>
                         </div>
                     </div>
                 </div>`;
@@ -1237,6 +1251,32 @@
             const txt = (x, y, fs, val) =>
                 `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-size="${fs}" font-weight="900" font-family="Outfit,sans-serif">${val}</text>`;
 
+            // DFATE - rounded square with +, − or blank
+            if (type === 'DFATE') {
+                const display = value === '+' ? '+' : value === '−' ? '−' : '';
+                const fs = 32;
+                return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+                    <rect x="4" y="4" width="56" height="56" rx="12" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                    <rect x="4" y="4" width="56" height="28" rx="12" fill="rgba(255,255,255,0.08)"/>
+                    ${display ? txt(32, 32, fs, display) : ''}
+                </svg>`;
+            }
+            // DFU - rounded square with 1 or 2 lines of text
+            if (type === 'DFU') {
+                const parts = value.split('\n');
+                const linesSVG = parts.length === 1
+                    ? txt(32, 32, 20, parts[0])
+                    : `<text text-anchor="middle" fill="${textColor}" font-weight="900" font-family="Outfit,sans-serif" font-size="20">
+                        <tspan x="32" y="25">${parts[0]}</tspan>
+                        <tspan x="32" y="45">${parts[1]}</tspan>
+                      </text>`;
+                return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+                    <rect x="4" y="4" width="56" height="56" rx="12" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+                    <rect x="4" y="4" width="56" height="28" rx="12" fill="rgba(255,255,255,0.08)"/>
+                    ${linesSVG}
+                </svg>`;
+            }
+
             // D6 - rounded square with numeric value (no dots)
             if (type === 'D6') {
                 return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
@@ -1302,8 +1342,14 @@
         }
 
         function rollSimpleMode() {
-            const results = state.dicePool.map(d => ({ type: d.type, value: Math.floor(Math.random() * DICE_MAX[d.type]) + 1, color: DICE_COLORS[d.type] }));
-            const total = results.reduce((s, r) => s + r.value, 0);
+            const results = state.dicePool.map(d => {
+                const isSpecial = SPECIAL_DICE.includes(d.type);
+                const value = isSpecial ? rollSpecialDie(d.type) : Math.floor(Math.random() * DICE_MAX[d.type]) + 1;
+                return { type: d.type, value, color: DICE_COLORS[d.type], isSpecial };
+            });
+            const numericResults = results.filter(r => !r.isSpecial);
+            const total = numericResults.reduce((s, r) => s + r.value, 0);
+            const hasSpecial = results.some(r => r.isSpecial);
 
             // Build tray with all dice showing "?" first, then animate to real values
             const diceHTML = results.map((r, i) => `
@@ -1315,14 +1361,17 @@
                 </div>
             `).join('');
 
+            const totalLine = hasSpecial && numericResults.length === 0
+                ? `<span class="tray-total-label">Résultats affichés</span>`
+                : `<span class="tray-total-label">TOTAL</span><span class="tray-total-value">${total}</span>
+                   ${results.length > 1 && numericResults.length > 1 ? `<span style="font-size:0.75rem;color:rgba(255,255,255,0.3);">(${numericResults.map(r=>r.value).join(' + ')})</span>` : ''}`;
+
             document.getElementById('diceResults').innerHTML = `
                 <div class="dice-tray fade-in">
                     <div class="dice-tray-label">🎲 Lancer</div>
                     <div class="dice-roll-area">${diceHTML}</div>
                     <div class="tray-total">
-                        <span class="tray-total-label">TOTAL</span>
-                        <span class="tray-total-value">${total}</span>
-                        ${results.length > 1 ? `<span style="font-size:0.75rem;color:rgba(255,255,255,0.3);">(${results.map(r=>r.value).join(' + ')})</span>` : ''}
+                        ${totalLine}
                     </div>
                 </div>`;
 
@@ -1338,11 +1387,18 @@
         function rollCombatMode() {
             const results = state.playerNames.map((name, idx) => {
                 const pool = state.playerPools[idx] || [];
-                const rolls = pool.map(d => ({ type: d.type, value: Math.floor(Math.random() * DICE_MAX[d.type]) + 1, color: DICE_COLORS[d.type] }));
-                return { name, color: state.playerColors[idx] || DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length], rolls, total: rolls.reduce((s,r) => s+r.value, 0) };
+                const rolls = pool.map(d => {
+                    const isSpecial = SPECIAL_DICE.includes(d.type);
+                    const value = isSpecial ? rollSpecialDie(d.type) : Math.floor(Math.random() * DICE_MAX[d.type]) + 1;
+                    return { type: d.type, value, color: DICE_COLORS[d.type], isSpecial };
+                });
+                const numericTotal = rolls.filter(r => !r.isSpecial).reduce((s,r) => s+r.value, 0);
+                return { name, color: state.playerColors[idx] || DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length], rolls, total: numericTotal };
             });
             const maxTotal = Math.max(...results.map(r => r.total));
             const isDrawn = results.filter(r => r.total === maxTotal).length > 1;
+            // Check if all dice across all players are special (no numeric dice)
+            const allSpecial = results.every(p => p.rolls.every(r => r.isSpecial));
 
             // Phase 1 — animate dice trays per player
             let globalDieIdx = 0;
@@ -1383,7 +1439,7 @@
                 </div>`;
             }).join('');
 
-            html += `<div id="combatScoreSummary" style="opacity:0;transition:opacity 0.5s ease;margin-top:4px;">
+            html += allSpecial ? '' : `<div id="combatScoreSummary" style="opacity:0;transition:opacity 0.5s ease;margin-top:4px;">
                 <div class="card" style="padding:12px;">
                     <div style="display:flex;flex-direction:column;gap:6px;">${scoresHTML}</div>
                     ${isDrawn ? '<div style="text-align:center;margin-top:8px;font-weight:700;color:var(--warning);">Égalité !</div>' : ''}
@@ -1403,16 +1459,18 @@
             }, 80);
 
             // Fade in score summary after all dice have landed
-            setTimeout(() => {
-                const el = document.getElementById('combatScoreSummary');
-                if (el) el.style.opacity = '1';
-            }, summaryDelay);
+            if (!allSpecial) {
+                setTimeout(() => {
+                    const el = document.getElementById('combatScoreSummary');
+                    if (el) el.style.opacity = '1';
+                }, summaryDelay);
 
-            // Scroll to bottom after summary appears
-            setTimeout(() => {
-                const anchor = document.getElementById('combatResultsEnd');
-                if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }, summaryDelay + 400);
+                // Scroll to bottom after summary appears
+                setTimeout(() => {
+                    const anchor = document.getElementById('combatResultsEnd');
+                    if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }, summaryDelay + 400);
+            }
         }
 
         // ============ COUNTER LOGIC ============
