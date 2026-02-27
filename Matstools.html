@@ -1569,13 +1569,18 @@
             if (histPanel) { if (state.showHistory) { histPanel.classList.remove('hidden'); renderHistory(); } else histPanel.classList.add('hidden'); }
         }
 
+        // ── Proba table state ──
+        let _probaDist = null, _probaTotal = 0, _probaMin = 0, _probaMax = 0;
+        let _probaMenu = null;
+
         function renderProbaTable() {
             const panel = document.getElementById('probaPanel');
             if (!panel) return;
+            _probaMenu = null;
             const numericDice = state.dicePool.filter(d => !SPECIAL_DICE.includes(d.type));
             if (numericDice.length === 0) {
-                panel.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; text-align:center; padding:8px 0;">Ajoutez des dés numériques pour voir les probabilités.</div>';
-                return;
+                panel.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; text-align:center; padding:8px 0;">Ajoutez des des numeriques pour voir les probabilites.</div>';
+                _probaDist = null; return;
             }
             let dist = [1];
             for (const d of numericDice) {
@@ -1587,26 +1592,146 @@
                 }
                 dist = newDist;
             }
-            const total = dist.reduce((s, v) => s + v, 0);
-            const minVal = dist.findIndex(v => v > 0);
-            const maxVal = dist.length - 1;
+            _probaDist = dist;
+            _probaTotal = dist.reduce((s, v) => s + v, 0);
+            _probaMin = dist.findIndex(v => v > 0);
+            _probaMax = dist.length - 1;
+            _drawProbaRows(panel, numericDice);
+        }
+
+        function _drawProbaRows(panel, numericDice) {
+            if (!numericDice) numericDice = state.dicePool.filter(d => !SPECIAL_DICE.includes(d.type));
+            const dist = _probaDist, total = _probaTotal, minVal = _probaMin, maxVal = _probaMax;
             const maxCount = Math.max(...dist);
-            const diceLabel = numericDice.map(d => '<span style="background:' + DICE_COLORS[d.type] + '; color:#fff; padding:2px 7px; border-radius:6px; font-size:0.75rem; font-weight:700;">' + d.type + '</span>').join(' ');
-            let html = '<div style="margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><span style="font-weight:700; font-size:0.9rem;">Probabilités &#8212;</span>' + diceLabel + '</div>';
+            const m = _probaMenu;
+
+            const diceLabel = numericDice.map(d =>
+                '<span style="background:' + DICE_COLORS[d.type] + '; color:#fff; padding:2px 7px; border-radius:6px; font-size:0.75rem; font-weight:700;">' + d.type + '</span>'
+            ).join(' ');
+
+            let html = '<div style="margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+                '<span style="font-weight:700; font-size:0.9rem;">Probabilites &#8212;</span>' + diceLabel +
+                '<span style="font-size:0.72rem; color:var(--muted); margin-left:4px;">Cliquer une valeur pour analyser</span></div>';
+
+            // Context menu
+            if (m) {
+                const accent = m.mode === 'gte' ? '#00d4aa' : m.mode === 'lte' ? '#748ffc' : '#ffd43b';
+                html += '<div style="margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid ' + accent + '55; border-radius:12px; padding:10px 12px;">';
+                if (m.mode === 'pick') {
+                    html += '<div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; color:var(--fg);">Analyse pour <strong style="color:var(--accent);">' + m.val + '</strong></div>' +
+                        '<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+                        '<button onclick="probaSetMode(\'gte\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #00d4aa55; cursor:pointer; background:#00d4aa18; color:#00d4aa; font-weight:700; font-size:0.85rem; font-family:inherit;">&ge; ' + m.val + '</button>' +
+                        '<button onclick="probaSetMode(\'lte\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #748ffc55; cursor:pointer; background:#748ffc18; color:#748ffc; font-weight:700; font-size:0.85rem; font-family:inherit;">&le; ' + m.val + '</button>' +
+                        '<button onclick="probaSetMode(\'range\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #ffd43b55; cursor:pointer; background:#ffd43b18; color:#ffd43b; font-weight:700; font-size:0.85rem; font-family:inherit;">' + m.val + ' &rarr; ?</button>' +
+                        '<button onclick="probaCloseMenu()" style="padding:8px 10px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+                        '</div>';
+                } else if (m.mode === 'range') {
+                    html += '<div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; color:#ffd43b;">Intervalle : de ' + m.val + ' &agrave; ...</div>' +
+                        '<div style="display:flex; gap:6px; align-items:center;">' +
+                        '<input id="probaRangeInput" type="number" min="' + (m.val + 1) + '" max="' + maxVal + '" placeholder="valeur max" ' +
+                        'style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #ffd43b66; background:var(--glass); color:var(--fg); font-family:inherit; font-size:0.95rem; font-weight:700; outline:none;" ' +
+                        'oninput="probaApplyRange()">' +
+                        '<button onclick="probaCloseMenu()" style="padding:8px 10px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+                        '</div>';
+                } else {
+                    let pct = 0, label = '';
+                    if (m.mode === 'gte') {
+                        for (let v = m.val; v <= maxVal; v++) pct += (dist[v] || 0) / total * 100;
+                        label = '&ge; ' + m.val;
+                    } else if (m.mode === 'lte') {
+                        for (let v = minVal; v <= m.val; v++) pct += (dist[v] || 0) / total * 100;
+                        label = '&le; ' + m.val;
+                    } else if (m.mode === 'range-result') {
+                        for (let v = m.val; v <= m.val2; v++) pct += (dist[v] || 0) / total * 100;
+                        label = m.val + ' &rarr; ' + m.val2;
+                    }
+                    const pctStr = pct < 0.1 ? '<0.1' : pct.toFixed(1);
+                    html += '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+                        '<div><span style="font-size:0.8rem; color:var(--muted);">Probabilite de </span>' +
+                        '<span style="font-weight:700; font-size:0.95rem; color:' + accent + ';">' + label + '</span></div>' +
+                        '<div style="display:flex; align-items:center; gap:8px;">' +
+                        '<span style="font-family:\'Outfit\',sans-serif; font-size:1.8rem; font-weight:900; color:' + accent + ';">' + pctStr + '%</span>' +
+                        '<button onclick="probaCloseMenu()" style="padding:5px 9px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+                        '</div></div>';
+                }
+                html += '</div>';
+            }
+
             html += '<div style="display:flex; flex-direction:column; gap:3px;">';
             for (let v = minVal; v <= maxVal; v++) {
                 if (!dist[v]) continue;
                 const pct = (dist[v] / total * 100);
                 const pctStr = pct < 0.1 ? '<0.1' : pct.toFixed(pct >= 10 ? 1 : 2);
                 const barW = Math.round(dist[v] / maxCount * 100);
-                html += '<div style="display:flex; align-items:center; gap:8px;">' +
-                    '<span style="min-width:32px; text-align:right; font-family:\'Outfit\',sans-serif; font-weight:700; font-size:0.9rem; color:var(--fg);">' + v + '</span>' +
+
+                let barColor = 'linear-gradient(90deg,var(--accent),var(--accent-dim))';
+                let rowOpacity = '1';
+                let highlight = false;
+                if (m && m.mode !== 'pick' && m.mode !== 'range') {
+                    let inRange = false;
+                    if (m.mode === 'gte') inRange = v >= m.val;
+                    else if (m.mode === 'lte') inRange = v <= m.val;
+                    else if (m.mode === 'range-result') inRange = v >= m.val && v <= m.val2;
+                    if (!inRange) { rowOpacity = '0.2'; barColor = 'rgba(255,255,255,0.15)'; }
+                    else {
+                        highlight = true;
+                        barColor = m.mode === 'gte' ? 'linear-gradient(90deg,#00d4aa,#00a885)'
+                            : m.mode === 'lte' ? 'linear-gradient(90deg,#748ffc,#5f3dc4)'
+                            : 'linear-gradient(90deg,#ffd43b,#fab005)';
+                    }
+                }
+
+                const labelColor = highlight ? (m.mode === 'gte' ? '#00d4aa' : m.mode === 'lte' ? '#748ffc' : '#ffd43b') : 'var(--fg)';
+                html += '<div onclick="probaRowClick(' + v + ')" ' +
+                    'style="display:flex; align-items:center; gap:8px; cursor:pointer; border-radius:6px; padding:2px 4px; transition:background 0.15s; opacity:' + rowOpacity + ';" ' +
+                    'onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+                    '<span style="min-width:32px; text-align:right; font-family:\'Outfit\',sans-serif; font-weight:700; font-size:0.9rem; color:' + labelColor + ';">' + v + '</span>' +
                     '<div style="flex:1; height:18px; background:var(--glass); border-radius:4px; overflow:hidden; border:1px solid var(--border);">' +
-                    '<div style="height:100%; width:' + barW + '%; background:linear-gradient(90deg,var(--accent),var(--accent-dim)); border-radius:4px;"></div></div>' +
+                    '<div style="height:100%; width:' + barW + '%; background:' + barColor + '; border-radius:4px; transition:width 0.3s;"></div></div>' +
                     '<span style="min-width:46px; font-size:0.8rem; font-weight:600; color:var(--muted);">' + pctStr + '%</span></div>';
             }
             html += '</div>';
             panel.innerHTML = html;
+            if (m && m.mode === 'range') {
+                setTimeout(() => { const i = document.getElementById('probaRangeInput'); if(i) i.focus(); }, 30);
+            }
+        }
+
+        function probaRowClick(val) {
+            if (_probaMenu && _probaMenu.mode === 'pick' && _probaMenu.val === val) {
+                _probaMenu = null;
+            } else {
+                _probaMenu = { val, mode: 'pick' };
+            }
+            _drawProbaRows(document.getElementById('probaPanel'));
+        }
+
+        function probaSetMode(mode) {
+            if (!_probaMenu) return;
+            _probaMenu.mode = mode;
+            _probaMenu.val2 = null;
+            _drawProbaRows(document.getElementById('probaPanel'));
+        }
+
+        function probaApplyRange() {
+            const inp = document.getElementById('probaRangeInput');
+            if (!inp || !_probaMenu) return;
+            const v2 = parseInt(inp.value);
+            if (isNaN(v2) || v2 <= _probaMenu.val) return;
+            _probaMenu.val2 = Math.min(_probaMax, v2);
+            _probaMenu.mode = 'range-result';
+            const savedVal = inp.value;
+            _drawProbaRows(document.getElementById('probaPanel'));
+            // restore input and keep focus for editing
+            setTimeout(() => {
+                const i = document.getElementById('probaRangeInput');
+                if (i) { i.value = savedVal; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+            }, 10);
+        }
+
+        function probaCloseMenu() {
+            _probaMenu = null;
+            _drawProbaRows(document.getElementById('probaPanel'));
         }
 
         function addToHistory(results, total) {
