@@ -2437,6 +2437,37 @@
             if (document.getElementById('noteEditorOverlay').classList.contains('show')) closeNoteEditor();
         });
 
+        // ── Redirect 127.0.0.1 → localhost ──
+        if (window.location.hostname === '127.0.0.1') {
+            window.location.replace(window.location.href.replace('127.0.0.1', 'localhost'));
+        }
+
+        // ── Wake Lock: empêcher l'écran de s'éteindre ──
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('[WakeLock] Écran maintenu actif');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('[WakeLock] Libéré');
+                    });
+                } catch (err) {
+                    console.warn('[WakeLock] Impossible:', err.message);
+                }
+            }
+        }
+
+        // Réactiver le wake lock si la page redevient visible (ex: retour d'onglet)
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible') {
+                await requestWakeLock();
+            }
+        });
+
+        requestWakeLock();
+
         // Init
         loadState();
 
