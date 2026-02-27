@@ -701,6 +701,47 @@
                         <button class="quick-dice-btn" style="background: #a29bfe" onclick="addDiceToPool('DFU')">Fu</button>
                     </div>
                 </div>
+
+                <!-- Advanced Options Panel -->
+                <div class="card" style="padding:0; overflow:hidden;">
+                    <button onclick="toggleAdvancedPanel()" style="width:100%; background:none; border:none; padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; color:var(--fg); font-family:inherit; font-size:0.9rem; font-weight:600;">
+                        <span>&#9881;&#65039; Options avancées</span>
+                        <span id="advancedPanelChevron" style="transition:transform 0.25s; font-size:0.75rem; color:var(--muted);">&#9660;</span>
+                    </button>
+                    <div id="advancedPanel" style="display:none; border-top:1px solid var(--border); padding:14px 16px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                            <div>
+                                <div style="font-weight:600; font-size:0.9rem;">&#128202; Tableau des probabilités</div>
+                                <div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">Affiche toutes les chances de résultat</div>
+                            </div>
+                            <button id="toggleProbaBtn" onclick="toggleOption('proba')" style="width:46px; height:26px; border-radius:13px; border:none; cursor:pointer; transition:background 0.2s; background:#555; position:relative; flex-shrink:0;">
+                                <span style="position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform 0.2s; display:block;" id="toggleProbaKnob"></span>
+                            </button>
+                        </div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div>
+                                <div style="font-weight:600; font-size:0.9rem;">&#128203; Mes lancers</div>
+                                <div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">Historique de tous vos lancers</div>
+                            </div>
+                            <button id="toggleHistoryBtn" onclick="toggleOption('history')" style="width:46px; height:26px; border-radius:13px; border:none; cursor:pointer; transition:background 0.2s; background:#555; position:relative; flex-shrink:0;">
+                                <span style="position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform 0.2s; display:block;" id="toggleHistoryKnob"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Probability Table -->
+                <div id="probaPanel" class="card hidden"></div>
+
+                <!-- Roll History -->
+                <div id="historyPanel" class="card hidden">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                        <span style="font-weight:700; font-size:0.95rem;">&#128203; Mes lancers</span>
+                        <button onclick="clearRollHistory()" style="background:rgba(255,71,87,0.15); border:1px solid rgba(255,71,87,0.3); border-radius:8px; padding:5px 10px; font-size:0.75rem; font-weight:700; color:var(--danger); cursor:pointer;">&#128465;&#65039; Remise à zéro</button>
+                    </div>
+                    <div id="historyStats" style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;"></div>
+                    <div id="historyList" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
+                </div>
             </div>
 
             <!-- Combat Mode -->
@@ -950,7 +991,10 @@
             selectedColor: null,
             selectedIcon: null,
             darkMode: true,
-            notes: []
+            notes: [],
+            showProba: false,
+            showHistory: false,
+            rollHistory: []
         };
 
         let undoStack = [];
@@ -1033,6 +1077,7 @@
                 // Always reset to simple mode with correct tab highlighted
                 setDiceMode('simple');
                 updateDicePoolUI();
+                initAdvancedOptions();
             }
             else if (app === 'counter') {
                 // Restore the saved view and sync the button states
@@ -1091,8 +1136,8 @@
             updateFabState();
         }
 
-        function addDiceToPool(type) { state.dicePool.push({ type, id: Date.now() }); updateDicePoolUI(); updateFabState(); saveState(); }
-        function removeFromPool(id) { state.dicePool = state.dicePool.filter(d => d.id !== id); updateDicePoolUI(); updateFabState(); saveState(); }
+        function addDiceToPool(type) { state.dicePool.push({ type, id: Date.now() }); updateDicePoolUI(); updateFabState(); saveState(); if (state.showProba) renderProbaTable(); }
+        function removeFromPool(id) { state.dicePool = state.dicePool.filter(d => d.id !== id); updateDicePoolUI(); updateFabState(); saveState(); if (state.showProba) renderProbaTable(); }
         
         function updateDicePoolUI() {
             const pool = document.getElementById('dicePool');
@@ -1382,6 +1427,10 @@
                     if (el) el.classList.remove('rolling');
                 }, 750 + i * 400);
             });
+
+            // Track history & refresh proba
+            addToHistory(results, (hasSpecial && numericResults.length === 0) ? null : total);
+            if (state.showProba) renderProbaTable();
         }
 
         function rollCombatMode() {
@@ -1471,6 +1520,153 @@
                     if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
                 }, summaryDelay + 400);
             }
+        }
+
+        // ============ ADVANCED OPTIONS ============
+
+        function toggleAdvancedPanel() {
+            const panel = document.getElementById('advancedPanel');
+            const chevron = document.getElementById('advancedPanelChevron');
+            const isOpen = panel.style.display !== 'none';
+            panel.style.display = isOpen ? 'none' : 'block';
+            chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+        }
+
+        function toggleOption(type) {
+            if (type === 'proba') {
+                state.showProba = !state.showProba;
+                updateToggleUI('toggleProbaBtn', 'toggleProbaKnob', state.showProba);
+                const panel = document.getElementById('probaPanel');
+                if (state.showProba) { panel.classList.remove('hidden'); renderProbaTable(); }
+                else panel.classList.add('hidden');
+            } else {
+                state.showHistory = !state.showHistory;
+                updateToggleUI('toggleHistoryBtn', 'toggleHistoryKnob', state.showHistory);
+                const panel = document.getElementById('historyPanel');
+                if (state.showHistory) { panel.classList.remove('hidden'); renderHistory(); }
+                else panel.classList.add('hidden');
+            }
+            saveState();
+        }
+
+        function updateToggleUI(btnId, knobId, active) {
+            const btn = document.getElementById(btnId);
+            const knob = document.getElementById(knobId);
+            if (!btn || !knob) return;
+            btn.style.background = active ? 'var(--accent)' : '#555';
+            knob.style.transform = active ? 'translateX(20px)' : 'translateX(0)';
+        }
+
+        function initAdvancedOptions() {
+            if (!state.rollHistory) state.rollHistory = [];
+            if (state.showProba === undefined) state.showProba = false;
+            if (state.showHistory === undefined) state.showHistory = false;
+            updateToggleUI('toggleProbaBtn', 'toggleProbaKnob', state.showProba);
+            updateToggleUI('toggleHistoryBtn', 'toggleHistoryKnob', state.showHistory);
+            const probaPanel = document.getElementById('probaPanel');
+            const histPanel = document.getElementById('historyPanel');
+            if (probaPanel) { if (state.showProba) { probaPanel.classList.remove('hidden'); renderProbaTable(); } else probaPanel.classList.add('hidden'); }
+            if (histPanel) { if (state.showHistory) { histPanel.classList.remove('hidden'); renderHistory(); } else histPanel.classList.add('hidden'); }
+        }
+
+        function renderProbaTable() {
+            const panel = document.getElementById('probaPanel');
+            if (!panel) return;
+            const numericDice = state.dicePool.filter(d => !SPECIAL_DICE.includes(d.type));
+            if (numericDice.length === 0) {
+                panel.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; text-align:center; padding:8px 0;">Ajoutez des dés numériques pour voir les probabilités.</div>';
+                return;
+            }
+            let dist = [0, 1];
+            for (const d of numericDice) {
+                const max = DICE_MAX[d.type];
+                const newDist = new Array(dist.length + max).fill(0);
+                for (let i = 0; i < dist.length; i++) {
+                    if (!dist[i]) continue;
+                    for (let face = 1; face <= max; face++) newDist[i + face] += dist[i];
+                }
+                dist = newDist;
+            }
+            const total = dist.reduce((s, v) => s + v, 0);
+            const minVal = dist.findIndex(v => v > 0);
+            const maxVal = dist.length - 1;
+            const maxCount = Math.max(...dist);
+            const diceLabel = numericDice.map(d => '<span style="background:' + DICE_COLORS[d.type] + '; color:#fff; padding:2px 7px; border-radius:6px; font-size:0.75rem; font-weight:700;">' + d.type + '</span>').join(' ');
+            let html = '<div style="margin-bottom:12px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;"><span style="font-weight:700; font-size:0.9rem;">Probabilités &#8212;</span>' + diceLabel + '</div>';
+            html += '<div style="display:flex; flex-direction:column; gap:3px;">';
+            for (let v = minVal; v <= maxVal; v++) {
+                if (!dist[v]) continue;
+                const pct = (dist[v] / total * 100);
+                const pctStr = pct < 0.1 ? '<0.1' : pct.toFixed(pct >= 10 ? 1 : 2);
+                const barW = Math.round(dist[v] / maxCount * 100);
+                html += '<div style="display:flex; align-items:center; gap:8px;">' +
+                    '<span style="min-width:32px; text-align:right; font-family:\'Outfit\',sans-serif; font-weight:700; font-size:0.9rem; color:var(--fg);">' + v + '</span>' +
+                    '<div style="flex:1; height:18px; background:var(--glass); border-radius:4px; overflow:hidden; border:1px solid var(--border);">' +
+                    '<div style="height:100%; width:' + barW + '%; background:linear-gradient(90deg,var(--accent),var(--accent-dim)); border-radius:4px;"></div></div>' +
+                    '<span style="min-width:46px; font-size:0.8rem; font-weight:600; color:var(--muted);">' + pctStr + '%</span></div>';
+            }
+            html += '</div>';
+            panel.innerHTML = html;
+        }
+
+        function addToHistory(results, total) {
+            if (!state.rollHistory) state.rollHistory = [];
+            const dice = results.map(r => r.type);
+            const values = results.map(r => r.value);
+            state.rollHistory.unshift({ dice, values, total, timestamp: Date.now() });
+            if (state.rollHistory.length > 1000) state.rollHistory.pop();
+            saveState();
+            if (state.showHistory) renderHistory();
+        }
+
+        function clearRollHistory() {
+            state.rollHistory = [];
+            saveState();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const stats = document.getElementById('historyStats');
+            const list = document.getElementById('historyList');
+            if (!stats || !list) return;
+            const h = state.rollHistory || [];
+            const numericRolls = h.filter(r => typeof r.total === 'number');
+            if (numericRolls.length > 0) {
+                const totalSum = numericRolls.reduce((s, r) => s + r.total, 0);
+                const avg = (totalSum / numericRolls.length).toFixed(1);
+                stats.innerHTML = '<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+                    '<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Total cumulé</div>' +
+                    '<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:var(--accent);">' + totalSum + '</div></div>' +
+                    '<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+                    '<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Moyenne</div>' +
+                    '<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:#da77f2;">' + avg + '</div></div>' +
+                    '<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+                    '<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Lancers</div>' +
+                    '<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:#748ffc;">' + h.length + '</div></div>';
+            } else {
+                stats.innerHTML = h.length > 0 ? '<div style="color:var(--muted); font-size:0.85rem;">' + h.length + ' lancer' + (h.length > 1 ? 's' : '') + '</div>' : '';
+            }
+            if (h.length === 0) {
+                list.innerHTML = '<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:16px 0;">Aucun lancer enregistré.</div>';
+                return;
+            }
+            list.innerHTML = h.map(function(r, i) {
+                const uniqueDice = [...new Set(r.dice)];
+                const dicePills = uniqueDice.map(function(type) {
+                    const count = r.dice.filter(function(d) { return d === type; }).length;
+                    return '<span style="background:' + (DICE_COLORS[type]||'#888') + '; color:#fff; padding:1px 6px; border-radius:5px; font-size:0.7rem; font-weight:700;">' + (count > 1 ? count + 'x' : '') + type + '</span>';
+                }).join(' ');
+                const valDisplay = typeof r.total === 'number'
+                    ? '<span style="font-family:\'Outfit\',sans-serif; font-weight:900; font-size:1.1rem; color:var(--accent);">' + r.total + '</span>'
+                    : '<span style="font-size:0.8rem; color:var(--muted);">' + r.values.join(', ') + '</span>';
+                const detail = typeof r.total === 'number' && r.dice.length > 1
+                    ? r.values.join(' + ') + ' = ' + r.total
+                    : r.values.join(', ');
+                return '<div style="display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--glass); border-radius:8px; border:1px solid var(--border);">' +
+                    '<span style="font-size:0.75rem; color:var(--muted); min-width:24px; text-align:right; flex-shrink:0;">#' + (h.length - i) + '</span>' +
+                    '<div style="display:flex; gap:4px; flex-wrap:wrap; flex:1;">' + dicePills + '</div>' +
+                    '<span style="font-size:0.8rem; color:var(--muted); flex-shrink:0;">' + detail + '</span></div>';
+            }).join('');
         }
 
         // ============ COUNTER LOGIC ============
