@@ -1577,7 +1577,7 @@
                 panel.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; text-align:center; padding:8px 0;">Ajoutez des dés numériques pour voir les probabilités.</div>';
                 return;
             }
-            let dist = [0, 1];
+            let dist = [1];
             for (const d of numericDice) {
                 const max = DICE_MAX[d.type];
                 const newDist = new Array(dist.length + max).fill(0);
