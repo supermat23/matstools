@@ -3,7 +3,7 @@
 
 const CACHE_NAME = 'matstools-v2';
 const ASSETS = [
-    './Matstools.html',
+    './index.html',
     './manifest.json',
     './icon-192.png',
     './icon-512.png',
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
             }).catch(() => {
                 // Offline fallback for HTML pages
                 if (event.request.destination === 'document') {
-                    return caches.match('./Matstools.html');
+                    return caches.match('./index.html');
                 }
             });
         })

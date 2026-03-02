@@ -3,7 +3,7 @@
   "name": "Mat's Tools - Dés & Compteurs",
   "short_name": "Mat's Tools",
   "description": "Lanceur de dés et compteurs de scores pour jeux de société",
-  "start_url": "./Matstools.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

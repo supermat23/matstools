@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mat's Tools - Dés & Compteurs</title>
+<meta name="description" content="Lanceur de dés et compteurs de scores pour jeux de société">
+<meta name="theme-color" content="#00d4aa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mat's Tools">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+--bg: #0a0a0f;
+--bg-secondary: #12121a;
+--fg: #f0f0f5;
+--muted: #6b7280;
+--accent: #00d4aa;
+--accent-dim: #00a885;
+--card: rgba(20, 20, 30, 0.8);
+--border: rgba(255, 255, 255, 0.08);
+--danger: #ff4757;
+--warning: #ffa502;
+--glass: rgba(255, 255, 255, 0.03);
+}
+body.light-mode {
+--bg: #f8fafc;
+--bg-secondary: #ffffff;
+--fg: #1e293b;
+--muted: #64748b;
+--card: rgba(255, 255, 255, 0.9);
+--border: rgba(0, 0, 0, 0.08);
+--glass: rgba(0, 0, 0, 0.02);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+font-family: 'Space Grotesk', sans-serif;
+background: var(--bg);
+color: var(--fg);
+min-height: 100vh;
+overflow-x: hidden;
+transition: background 0.4s ease, color 0.4s ease;
+}
+h1, h2, h3, .display-font { font-family: 'Outfit', sans-serif; }
+/* Background Visuals */
+.bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.orb {
+position: absolute; border-radius: 50%; filter: blur(80px);
+opacity: 0.4; animation: float 20s ease-in-out infinite;
+}
+body.light-mode .orb { opacity: 0.15; }
+.orb-1 { width: 500px; height: 500px; background: radial-gradient(circle, #00d4aa 0%, transparent 70%); top: -150px; right: -150px; }
+.orb-2 { width: 400px; height: 400px; background: radial-gradient(circle, #7c3aed 0%, transparent 70%); bottom: 10%; left: -100px; animation-delay: -5s; }
+.orb-3 { width: 300px; height: 300px; background: radial-gradient(circle, #ff6b6b 0%, transparent 70%); top: 40%; right: 5%; animation-delay: -12s; }
+@keyframes float { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(20px, -20px) scale(1.05); } }
+.grid-pattern {
+position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+background-size: 40px 40px; z-index: -1;
+}
+body.light-mode .grid-pattern { background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); }
+/* Shortcuts Bar */
+.shortcuts-bar {
+position: fixed; top: 0; left: 0; right: 0;
+background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(20px);
+display: flex; justify-content: center; gap: 12px; padding: 10px 20px; z-index: 1000;
+border-bottom: 1px solid var(--border); transition: background 0.4s ease;
+}
+body.light-mode .shortcuts-bar { background: rgba(248, 250, 252, 0.9); }
+.shortcut-btn {
+display: flex; align-items: center; gap: 8px; padding: 8px 18px;
+border: 1px solid var(--border); background: var(--glass);
+border-radius: 100px; font-weight: 600; cursor: pointer;
+color: var(--fg); font-size: 0.9rem; transition: all 0.2s;
+}
+.shortcut-btn:hover { background: rgba(255,255,255,0.08); transform: translateY(-1px); }
+.shortcut-btn.support {
+background: linear-gradient(135deg, #ff6b6b22, #ff475722);
+border-color: rgba(255, 71, 87, 0.4);
+}
+.shortcut-btn.support:hover {
+background: linear-gradient(135deg, #ff6b6b33, #ff475733);
+border-color: rgba(255, 71, 87, 0.6);
+}
+/* Home Screen */
+.home-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; padding-top: 70px; }
+.home-title {
+font-size: clamp(2.2rem, 7vw, 4rem); font-weight: 900; margin-bottom: 8px; text-align: center;
+background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+-webkit-background-clip: text; -webkit-text-fill-color: transparent;
+animation: gradient-shift 5s ease infinite; background-size: 200% 200%;
+}
+@keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+.home-subtitle { font-size: 1rem; color: var(--muted); margin-bottom: 48px; text-align: center; }
+.home-cards { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 400px; }
+.home-card {
+background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border);
+border-radius: 20px; padding: 28px; text-align: center; cursor: pointer;
+transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); position: relative;
+}
+.home-card:hover { transform: translateY(-5px); border-color: rgba(255,255,255,0.15); box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+.home-card-icon { font-size: 3rem; margin-bottom: 12px; }
+.home-card-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.home-card-desc { color: var(--muted); font-size: 0.9rem; }
+/* App Header */
+.app-header {
+position: sticky; top: 48px; z-index: 100;
+background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(20px);
+border-bottom: 1px solid var(--border); padding: 12px 20px;
+display: flex; align-items: center; justify-content: space-between;
+transition: background 0.4s ease;
+}
+body.light-mode .app-header { background: rgba(248, 250, 252, 0.9); }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.home-btn {
+background: var(--glass); border: 1px solid var(--border);
+border-radius: 10px; width: 38px; height: 38px;
+font-size: 1.1rem; cursor: pointer; color: var(--fg);
+transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.home-btn:hover { background: rgba(255,255,255,0.1); }
+.app-logo { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.app-logo.dice { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); }
+.app-logo.counter { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
+.app-title { font-size: 1.1rem; font-weight: 700; }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+background: transparent; border: none; font-size: 1.1rem;
+cursor: pointer; padding: 6px; border-radius: 8px;
+color: var(--fg); transition: all 0.2s; position: relative;
+}
+.icon-btn:hover { background: var(--glass); }
+.icon-btn.danger:hover { background: rgba(255, 71, 87, 0.15); color: var(--danger); }
+/* Undo Badge */
+.undo-badge { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; opacity: 0; transition: opacity 0.3s; }
+.icon-btn.has-undo .undo-badge { opacity: 1; }
+/* Main Content */
+.app-content { padding: 24px; max-width: 1200px; margin: 0 auto; padding-top: 90px; }
+/* Cards & Containers */
+.card { background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+/* Buttons */
+.btn { padding: 12px 24px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+.btn-secondary { background: var(--glass); color: var(--fg); border: 1px solid var(--border); }
+.btn-danger { background: linear-gradient(135deg, #ff4757, #ee5a5a); color: white; }
+.btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.btn:active { transform: scale(0.98); }
+/* FABs (Floating Action Buttons) */
+.fab {
+position: fixed; right: 24px; bottom: 24px;
+width: 64px; height: 64px; border-radius: 50%; border: none;
+font-size: 1.8rem; cursor: pointer;
+box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100;
+}
+.fab.dice { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+.fab.counter { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; }
+.fab:hover { transform: scale(1.1) rotate(90deg); }
+.fab:active { transform: scale(0.95) rotate(90deg); }
+.fab.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+/* Tabs */
+.mode-tabs, .view-selector {
+display: flex; gap: 6px; margin-bottom: 20px;
+background: var(--glass); padding: 4px; border-radius: 12px; border: 1px solid var(--border);
+}
+.mode-tab, .view-btn {
+flex: 1; padding: 10px; border: none; background: transparent;
+border-radius: 8px; font-weight: 600; cursor: pointer;
+color: var(--muted); font-family: inherit; transition: all 0.2s;
+}
+.mode-tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-dim)); color: #000; }
+.view-btn.active { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; }
+/* Dice Section */
+.dice-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 50px; padding: 10px; background: var(--glass); border-radius: 10px; border: 1px solid var(--border); align-items: center; }
+.pool-dice { padding: 8px 14px; border-radius: 8px; color: white; font-weight: 700; display: flex; align-items: center; gap: 6px; animation: pop-in 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+.pool-dice-delete { background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 18px; height: 18px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; margin-left: 4px; transition: all 0.2s; }
+.pool-dice-delete:hover { background: var(--danger); transform: scale(1.2); }
+.quick-dice-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick-dice-btn { flex: 1; min-width: 45px; padding: 10px 6px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; color: white; transition: all 0.2s; font-family: inherit; }
+.quick-dice-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.quick-dice-btn:active { transform: scale(0.95); }
+/* Player Setup */
+.player-setup { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.player-setup-header { padding: 10px 14px; color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.player-setup-body { background: var(--card); padding: 12px; }
+.player-dice-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 40px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 8px; }
+.editable-name { background: rgba(255,255,255,0.1); border: none; border-radius: 6px; padding: 2px 8px; color: white; font-weight: 600; font-family: inherit; cursor: pointer; }
+.editable-name:hover { background: rgba(255,255,255,0.2); }
+.name-edit-input { background: white; border: none; border-radius: 6px; padding: 2px 8px; color: black; font-weight: 600; width: 100px; }
+/* Results */
+.results { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 16px; }
+.result-dice { width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: 800; box-shadow: 0 4px 15px rgba(0,0,0,0.2); animation: pop-in 0.3s ease; }
+.result-total { text-align: center; padding: 20px; background: var(--glass); border-radius: 12px; border: 1px solid var(--border); }
+.result-total-value { font-family: 'Outfit', sans-serif; font-size: 3.5rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+/* ── Dice Tray Animation ── */
+.dice-tray {
+position: relative; border-radius: 20px; padding: 20px 16px 16px;
+margin-bottom: 16px; overflow: hidden;
+background: radial-gradient(ellipse at 30% 30%, #1a2a1a 0%, #0d1a0d 60%, #060e06 100%);
+border: 3px solid #2a3d2a;
+box-shadow: inset 0 2px 8px rgba(0,0,0,0.6), inset 0 -2px 4px rgba(255,255,255,0.03), 0 8px 32px rgba(0,0,0,0.5);
+}
+.dice-tray::before {
+content: ''; position: absolute; inset: 6px; border-radius: 14px;
+border: 1px solid rgba(255,255,255,0.06);
+background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.01) 3px, rgba(255,255,255,0.01) 6px);
+pointer-events: none;
+}
+.dice-tray-label {
+font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.25);
+text-transform: uppercase; letter-spacing: 0.12em; text-align: center;
+margin-bottom: 14px;
+}
+.dice-roll-area { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 80px; align-items: center; position: relative; z-index: 1; }
+/* Compact variant for combat mode */
+.dice-tray-compact { padding: 10px 12px 10px; border-radius: 14px; margin-bottom: 8px; }
+.dice-tray-compact .dice-roll-area { min-height: 56px; gap: 6px; }
+.dice-tray-compact .die-wrapper { transform-origin: center; zoom: 0.7; }
+/* Individual animated die */
+.die-wrapper {
+perspective: 400px;
+position: relative;
+animation: die-bounce 0.9s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+}
+@keyframes die-bounce {
+0%   { transform: translateY(-120px) scaleX(0.9) scaleY(0.9); opacity: 0; }
+30%  { transform: translateY(0px)    scaleX(1.18) scaleY(0.82); opacity: 1; }
+45%  { transform: translateY(-42px)  scaleX(0.92) scaleY(1.08); }
+58%  { transform: translateY(0px)    scaleX(1.1)  scaleY(0.9);  }
+70%  { transform: translateY(-18px)  scaleX(0.96) scaleY(1.04); }
+80%  { transform: translateY(0px)    scaleX(1.04) scaleY(0.97); }
+90%  { transform: translateY(-5px)   scaleX(0.99) scaleY(1.01); }
+100% { transform: translateY(0px)    scaleX(1)    scaleY(1);    opacity: 1; }
+}
+/* Rotation always active — synced to same delay as wrapper via inherit */
+.die-face-wrap {
+display: flex; flex-direction: column; align-items: center; gap: 4px;
+animation: die-spin 0.9s ease-out both;
+animation-delay: inherit;
+}
+@keyframes die-spin {
+0%   { transform: rotateZ(0deg)    rotateY(0deg); }
+20%  { transform: rotateZ(-90deg)  rotateY(120deg); }
+40%  { transform: rotateZ(160deg)  rotateY(240deg); }
+58%  { transform: rotateZ(250deg)  rotateY(320deg); }
+75%  { transform: rotateZ(310deg)  rotateY(350deg); }
+88%  { transform: rotateZ(348deg)  rotateY(358deg); }
+100% { transform: rotateZ(360deg)  rotateY(360deg); }
+}
+/* Remove spin override for .rolling (no longer needed) */
+/* Shadow pulses with the bounce */
+.die-shadow {
+animation: shadow-pulse 0.9s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+animation-delay: inherit;
+}
+@keyframes shadow-pulse {
+0%   { transform: scaleX(0.3); opacity: 0.1; }
+30%  { transform: scaleX(1.3); opacity: 0.5; }
+45%  { transform: scaleX(0.7); opacity: 0.25; }
+58%  { transform: scaleX(1.15); opacity: 0.45; }
+70%  { transform: scaleX(0.85); opacity: 0.3; }
+80%  { transform: scaleX(1.05); opacity: 0.42; }
+100% { transform: scaleX(1);    opacity: 0.4; }
+}
+.die-svg { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); cursor: default; }
+.die-type-label { font-size: 0.65rem; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 0.05em; text-transform: uppercase; }
+.die-value-badge { font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 900; color: #fff; }
+/* Tray total */
+.tray-total {
+display: flex; align-items: center; justify-content: center; gap: 12px;
+margin-top: 14px; padding: 10px 16px; border-radius: 12px;
+background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.07);
+}
+.tray-total-label { font-size: 0.8rem; color: rgba(255,255,255,0.4); font-weight: 600; letter-spacing: 0.05em; }
+.tray-total-value { font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--accent), #7c3aed); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+/* Bounce shadow on tray floor */
+.die-shadow { width: 44px; height: 6px; border-radius: 50%; background: rgba(0,0,0,0.4); margin: -2px auto 0; filter: blur(3px); }
+/* Combat Results */
+.combat-player { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; transition: all 0.3s; }
+.combat-player.winner { border-color: var(--warning); box-shadow: 0 0 20px rgba(255, 165, 2, 0.15); }
+.combat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.combat-name { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.combat-color { width: 10px; height: 10px; border-radius: 50%; }
+.combat-score { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 900; }
+.combat-dice-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.combat-dice { padding: 6px 10px; border-radius: 8px; color: white; display: flex; flex-direction: column; align-items: center; font-weight: 700; }
+.vs-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+.vs-line { flex: 1; height: 1px; background: var(--border); }
+.vs-badge { padding: 6px 16px; background: linear-gradient(135deg, #ff6b6b, #ff4757); color: white; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+.trophy-badge { background: linear-gradient(135deg, #ffd700, #ffa502); color: black; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; margin-left: 8px; }
+/* Counter Grid */
+.counter-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+.counter-card { position: relative; border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.2s; display: flex; flex-direction: column; min-height: 220px; }
+.counter-card:hover { transform: translateY(-2px); }
+.counter-delete-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 0.8rem; opacity: 0.6; transition: all 0.2s; color: white; display: flex; align-items: center; justify-content: center; }
+.counter-delete-btn:hover { opacity: 1; background: var(--danger); transform: scale(1.1); }
+.counter-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.counter-icon { font-size: 1.5rem; }
+.counter-name { font-weight: 700; font-size: 1rem; text-align: left; flex: 1; }
+.counter-value-container { text-align: center; flex-grow: 1; display: flex; align-items: center; justify-content: center; }
+.counter-value { font-family: 'Outfit', sans-serif; font-size: 3rem; font-weight: 900; }
+.counter-value.negative { color: var(--danger) !important; }
+.counter-buttons { display: flex; gap: 4px; margin-bottom: 4px; }
+.counter-btn { flex: 1; padding: 8px; border: none; background: rgba(255,255,255,0.15); border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.1s; }
+.counter-btn:hover { background: rgba(255,255,255,0.25); }
+.counter-btn:active { transform: scale(0.95); }
+/* Counter List - Desktop */
+.counter-list-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--card); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 8px; transition: all 0.2s; position: relative; }
+.counter-list-item:hover { border-color: rgba(255,255,255,0.1); }
+.counter-list-actions { display: flex; flex-direction: column; gap: 2px; margin-right: 8px; }
+.reorder-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 1rem; transition: all 0.2s; line-height: 1; }
+.reorder-btn:hover { color: var(--fg); transform: scale(1.2); }
+.counter-list-icon { font-size: 1.5rem; margin-right: 4px; }
+.counter-list-name { flex: 1; font-weight: 600; min-width: 80px; }
+.counter-list-value { font-family: 'Outfit', sans-serif; font-weight: 900; font-size: 1.6rem; min-width: 50px; text-align: center; }
+.counter-list-value.negative { color: var(--danger); }
+.counter-list-btns { display: flex; gap: 6px; }
+.counter-list-btn { width: 32px; height: 32px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.1s; color: white; }
+.counter-list-delete { background: transparent; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 6px; transition: all 0.2s; margin-left: 4px; }
+.counter-list-delete:hover { color: var(--danger); transform: scale(1.1); }
+/* Counter Circle */
+.counter-circle-container { position: relative; width: 300px; height: 300px; margin: 40px auto; }
+.counter-circle-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 100px; border-radius: 50%; background: var(--card); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+.counter-circle-node { position: absolute; width: 70px; height: 70px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+.counter-circle-node:hover { transform: scale(1.15); z-index: 5; }
+/* Dialogs */
+.dialog-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); display: flex; align-items: flex-start; justify-content: center; z-index: 2000; padding: 20px; padding-top: 80px; opacity: 0; visibility: hidden; transition: all 0.2s; overflow-y: auto; }
+.dialog-overlay.show { opacity: 1; visibility: visible; }
+.dialog { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; max-height: 80vh; overflow-y: auto; transform: scale(0.95); transition: transform 0.2s; }
+.dialog-overlay.show .dialog { transform: scale(1); }
+.dialog-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 20px; }
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+.form-input { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 1rem; background: var(--glass); color: var(--fg); font-family: inherit; }
+.form-input:focus { outline: none; border-color: var(--accent); }
+.icon-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+.icon-picker::-webkit-scrollbar { width: 4px; }
+.icon-picker::-webkit-scrollbar-track { background: transparent; }
+.icon-picker::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.icon-section-label { grid-column: 1 / -1; font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 0 2px; }
+.color-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 8px; }
+.icon-option { width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--glass); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: all 0.2s; }
+.icon-option:hover { background: rgba(255,255,255,0.05); transform: scale(1.1); }
+.icon-option.selected { border-color: var(--accent); background: rgba(0, 212, 170, 0.15); box-shadow: 0 0 0 2px rgba(0,212,170,0.3); }
+.icon-option.icon-none { font-size: 1rem; color: var(--muted); }
+.icon-option.icon-none.selected { color: var(--accent); }
+.color-option { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+.color-option:hover { transform: scale(1.1); }
+.color-option.selected { border-color: white; transform: scale(1.1); box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+.dialog-actions { display: flex; gap: 10px; margin-top: 24px; }
+.dialog-actions .btn { flex: 1; }
+.custom-value-dialog { text-align: center; max-width: 300px; }
+.custom-value-input { width: 100%; padding: 15px; border: 1px solid var(--border); border-radius: 12px; font-size: 2rem; text-align: center; background: var(--glass); color: var(--fg); font-weight: 700; margin-bottom: 20px; font-family: 'Outfit', sans-serif; }
+.confirm-dialog { text-align: center; max-width: 350px; }
+.confirm-icon { font-size: 3rem; margin-bottom: 12px; }
+.confirm-message { color: var(--muted); margin-bottom: 20px; }
+/* Utilities */
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+/* Dropdown */
+.dropdown-container { position: relative; }
+.dropdown-menu {
+position: absolute; top: 100%; right: 0;
+background: var(--bg-secondary); border: 1px solid var(--border);
+border-radius: 10px; min-width: 160px; z-index: 1001;
+box-shadow: 0 5px 20px rgba(0,0,0,0.3); display: none;
+margin-top: 4px; overflow: hidden;
+}
+.dropdown-menu.show { display: block; }
+.dropdown-item {
+display: flex; align-items: center; gap: 10px;
+padding: 10px 14px; cursor: pointer; transition: background 0.2s;
+border: none; background: none; width: 100%; text-align: left;
+color: var(--fg); font-family: inherit; font-size: 0.9rem;
+}
+.dropdown-item:hover { background: var(--glass); }
+.dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
+/* Current List Name */
+.current-list-name { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 16px; }
+.clear-list { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 18px; height: 18px; color: white; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+/* Responsive - Mobile Optimizations */
+@media (max-width: 600px) {
+.shortcuts-bar { padding: 8px 12px; gap: 8px; overflow-x: auto; }
+.shortcut-btn { padding: 6px 12px; font-size: 0.85rem; white-space: nowrap; }
+.app-header { padding: 10px 12px; }
+.app-content { padding: 16px; padding-top: 80px; }
+.counter-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+.counter-card { padding: 12px; min-height: auto; }
+.counter-value { font-size: 2.5rem; }
+/* Force Single Line for List Items */
+.counter-list-item {
+flex-wrap: nowrap; /* Keep everything on one line */
+padding: 8px 10px;
+gap: 6px;
+align-items: center;
+overflow: hidden; /* Prevent overflow */
+}
+/* Reorder buttons stacked on the far left */
+.counter-list-actions {
+position: static;
+transform: none;
+flex-direction: column;
+background: transparent;
+margin-right: 4px;
+gap: 0;
+}
+.reorder-btn {
+font-size: 0.8rem;
+line-height: 1.1;
+padding: 2px;
+}
+/* Compact content */
+.counter-list-icon { font-size: 1.2rem; margin-right: 0; }
+.counter-list-name {
+font-size: 0.9rem;
+flex: 1;
+min-width: 0; /* Critical for text-overflow */
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.counter-list-value {
+font-size: 1.2rem;
+min-width: 35px;
+margin: 0 4px;
+text-align: right;
+}
+/* Compact Buttons */
+.counter-list-btns {
+width: auto;
+margin-top: 0;
+gap: 4px;
+display: flex;
+align-items: center;
+}
+.counter-list-btn {
+width: 28px; /* Square buttons */
+height: 28px;
+font-size: 0.9rem;
+padding: 0;
+}
+/* Override inline style for custom button to make it square */
+.counter-list-btn.custom-btn {
+width: 28px !important;
+padding: 0 !important;
+font-size: 0.9rem !important;
+}
+.counter-list-delete {
+font-size: 0.9rem;
+padding: 4px;
+margin-left: 2px;
+}
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* ── Notes App ── */
+.home-card.notes { border-color: rgba(255, 214, 0, 0.2); }
+.home-card.notes:hover { border-color: rgba(255, 214, 0, 0.4); box-shadow: 0 15px 40px rgba(255,214,0,0.08); }
+.notes-list { display: flex; flex-direction: column; gap: 12px; }
+.note-card {
+border-radius: 16px; padding: 16px;
+cursor: pointer; position: relative;
+transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
+border: 1px solid rgba(0,0,0,0.08);
+min-height: 100px;
+display: flex; flex-direction: column; gap: 8px;
+box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.note-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.note-card:active { transform: scale(0.99); }
+.note-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.note-card-title { font-weight: 700; font-size: 1rem; flex: 1; color: rgba(0,0,0,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.note-action-btn {
+background: rgba(0,0,0,0.12); border: none; border-radius: 8px;
+width: 30px; height: 30px; cursor: pointer; font-size: 0.85rem;
+display: flex; align-items: center; justify-content: center;
+transition: all 0.15s; color: rgba(0,0,0,0.7);
+}
+.note-action-btn:hover { background: rgba(0,0,0,0.22); transform: scale(1.1); }
+.note-action-btn.danger:hover { background: rgba(200,0,0,0.25); color: #c00; }
+.note-card-preview {
+font-size: 0.88rem; color: rgba(0,0,0,0.65);
+line-height: 1.5; flex: 1;
+overflow: hidden;
+display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+}
+.note-card-date { font-size: 0.72rem; color: rgba(0,0,0,0.45); text-align: right; margin-top: 4px; }
+/* Note Editor */
+.note-editor-overlay {
+position: fixed; inset: 0; z-index: 3000;
+display: flex; flex-direction: column;
+transition: opacity 0.2s; opacity: 0; visibility: hidden;
+}
+.note-editor-overlay.show { opacity: 1; visibility: visible; }
+.note-editor-header {
+display: flex; align-items: center; gap: 10px;
+padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top));
+border-bottom: 1px solid rgba(0,0,0,0.1);
+background: inherit;
+}
+.note-editor-title-input {
+flex: 1; background: transparent; border: none; outline: none;
+font-size: 1.1rem; font-weight: 700; color: rgba(0,0,0,0.85);
+font-family: inherit;
+}
+.note-editor-title-input::placeholder { color: rgba(0,0,0,0.35); }
+.note-editor-body {
+flex: 1; width: 100%; padding: 16px;
+background: transparent; border: none; outline: none; resize: none;
+font-size: 1rem; line-height: 1.7; color: rgba(0,0,0,0.8);
+font-family: inherit; overflow-y: auto;
+}
+.note-editor-body::placeholder { color: rgba(0,0,0,0.3); }
+.note-editor-footer {
+padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+border-top: 1px solid rgba(0,0,0,0.1);
+display: flex; align-items: center; justify-content: space-between; gap: 8px;
+background: inherit;
+overflow-x: auto;
+}
+.note-color-swatches { display: flex; gap: 6px; flex-wrap: nowrap; }
+.note-swatch {
+width: 26px; height: 26px; border-radius: 50%;
+border: 2px solid transparent; cursor: pointer;
+transition: all 0.15s; flex-shrink: 0;
+}
+.note-swatch.active { border-color: rgba(0,0,0,0.5); transform: scale(1.2); }
+.note-swatch:hover { transform: scale(1.15); }
+.note-editor-save-btn {
+background: rgba(0,0,0,0.15); border: none; border-radius: 10px;
+padding: 8px 18px; font-weight: 700; cursor: pointer;
+font-family: inherit; font-size: 0.9rem; color: rgba(0,0,0,0.75);
+white-space: nowrap; transition: all 0.15s; flex-shrink: 0;
+}
+.note-editor-save-btn:hover { background: rgba(0,0,0,0.22); }
+.notes-empty {
+text-align: center; padding: 60px 20px;
+color: var(--muted);
+}
+.notes-empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+.notes-empty-text { font-size: 1rem; }
+.notes-search {
+width: 100%; padding: 11px 14px;
+border: 1px solid var(--border); border-radius: 12px;
+background: var(--glass); color: var(--fg);
+font-family: inherit; font-size: 0.95rem;
+margin-bottom: 16px; outline: none;
+transition: border-color 0.2s;
+}
+.notes-search:focus { border-color: #ffd43b; }
+.notes-count { font-size: 0.8rem; color: var(--muted); margin-bottom: 12px; }
+@media (max-width: 600px) {
+.note-card { padding: 14px; }
+}
+/* ❤️ Support Modal Styles */
+.support-modal-overlay {
+position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+display: flex; align-items: center; justify-content: center;
+z-index: 3000; opacity: 0; visibility: hidden;
+transition: all 0.2s; padding: 20px;
+}
+.support-modal-overlay.show { opacity: 1; visibility: visible; }
+.support-modal {
+background: var(--bg-secondary); border: 1px solid var(--border);
+border-radius: 20px; padding: 28px; width: 100%; max-width: 420px;
+text-align: center; transform: scale(0.95); transition: transform 0.2s;
+}
+.support-modal-overlay.show .support-modal { transform: scale(1); }
+.support-modal-icon { font-size: 3rem; margin-bottom: 12px; }
+.support-modal-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 16px; color: var(--accent); }
+.support-modal-text { color: var(--muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 16px; }
+.support-modal-list { text-align: left; background: var(--glass); padding: 16px; border-radius: 12px; margin-bottom: 20px; }
+.support-modal-list li { list-style: none; padding: 6px 0; color: var(--fg); font-size: 0.9rem; }
+.support-modal-list li::before { content: '✓ '; color: var(--accent); font-weight: 700; }
+.kofi-btn {
+display: inline-flex; align-items: center; gap: 8px;
+padding: 14px 28px; background: linear-gradient(135deg, #ff5e5e, #ff4757);
+color: white; border: none; border-radius: 12px;
+font-weight: 700; font-size: 1rem; cursor: pointer;
+text-decoration: none; transition: all 0.2s;
+font-family: inherit;
+}
+.kofi-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 71, 87, 0.3); }
+.kofi-btn:active { transform: translateY(0); }
+.support-modal-close {
+position: absolute; top: 16px; right: 16px;
+background: transparent; border: none; color: var(--muted);
+font-size: 1.5rem; cursor: pointer; padding: 4px;
+}
+.support-modal-close:hover { color: var(--fg); }
+</style>
+</head>
+<body>
+<div class="bg-canvas">
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+</div>
+<div class="grid-pattern"></div>
+<!-- Shortcuts Bar -->
+<div class="shortcuts-bar">
+<button class="shortcut-btn support" onclick="openSupportModal()">❤️ Supporter</button>
+<button class="shortcut-btn dice" onclick="openApp('dice')">🎲 Dés</button>
+<button class="shortcut-btn counter" onclick="openApp('counter')">🏆 Compteurs</button>
+<button class="shortcut-btn" onclick="openApp('notes')" style="border-color:rgba(255,214,0,0.4)">📝 Notes</button>
+<button id="pwa-install-btn" class="shortcut-btn hidden" style="background: linear-gradient(135deg,#00d4aa22,#7c3aed22); border-color: var(--accent);">📲 Installer</button>
+</div>
+<!-- Home Screen -->
+<div id="homeScreen" class="home-screen">
+<h1 class="home-title">Mat's Tools</h1>
+<p class="home-subtitle">Vos outils de jeu, tout en un</p>
+<div class="home-cards">
+<div class="home-card dice" onclick="openApp('dice')">
+<div class="home-card-icon">🎲</div>
+<div class="home-card-title">Lanceur de Dés</div>
+<div class="home-card-desc">Simple et Combat</div>
+</div>
+<div class="home-card counter" onclick="openApp('counter')">
+<div class="home-card-icon">🏆</div>
+<div class="home-card-title">Compteurs</div>
+<div class="home-card-desc">Scores et Réorganisable</div>
+</div>
+<div class="home-card notes" onclick="openApp('notes')">
+<div class="home-card-icon">📝</div>
+<div class="home-card-title">Notes</div>
+<div class="home-card-desc">Créer, organiser, retrouver</div>
+</div>
+</div>
+</div>
+<!-- Dice App -->
+<div id="diceApp" class="hidden">
+<header class="app-header">
+<div class="header-left">
+<button class="home-btn" onclick="goHome()">🏠</button>
+<div class="app-logo dice">🎲</div>
+<span class="app-title">Dés</span>
+</div>
+<div class="header-actions">
+<button class="icon-btn danger" onclick="clearAllDice()" title="Effacer">🗑️</button>
+<button class="icon-btn" onclick="toggleDarkMode()" title="Thème">🌙</button>
+</div>
+</header>
+<main class="app-content">
+<div class="mode-tabs">
+<button class="mode-tab active" id="simpleModeBtn" onclick="setDiceMode('simple')">Simple</button>
+<button class="mode-tab" id="combatModeBtn" onclick="setDiceMode('combat')">Combat</button>
+</div>
+<!-- Simple Mode -->
+<div id="simpleModeContent">
+<div class="card">
+<div class="dice-pool" id="dicePool"></div>
+<div class="quick-dice-btns" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
+<button class="quick-dice-btn" style="background: #20c997" onclick="addDiceToPool('D3')">D3</button>
+<button class="quick-dice-btn" style="background: #ff6b6b" onclick="addDiceToPool('D4')">D4</button>
+<button class="quick-dice-btn" style="background: #4dabf7" onclick="addDiceToPool('D6')">D6</button>
+<button class="quick-dice-btn" style="background: #51cf66" onclick="addDiceToPool('D8')">D8</button>
+<button class="quick-dice-btn" style="background: #ffd43b" onclick="addDiceToPool('D10')">D10</button>
+<button class="quick-dice-btn" style="background: #da77f2" onclick="addDiceToPool('D12')">D12</button>
+<button class="quick-dice-btn" style="background: #748ffc" onclick="addDiceToPool('D20')">D20</button>
+<button class="quick-dice-btn" style="background: #f783ac" onclick="addDiceToPool('D100')">D100</button>
+<button class="quick-dice-btn" style="background: #ff9f43" onclick="addDiceToPool('DFATE')">Fate</button>
+<button class="quick-dice-btn" style="background: #a29bfe" onclick="addDiceToPool('DFU')">Fu</button>
+</div>
+</div>
+<!-- Advanced Options Panel -->
+<div class="card" style="padding:0; overflow:hidden;">
+<button onclick="toggleAdvancedPanel()" style="width:100%; background:none; border:none; padding:14px 16px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; color:var(--fg); font-family:inherit; font-size:0.9rem; font-weight:600;">
+<span>&#9881;&#65039; Options avancées</span>
+<span id="advancedPanelChevron" style="transition:transform 0.25s; font-size:0.75rem; color:var(--muted);">&#9660;</span>
+</button>
+<div id="advancedPanel" style="display:none; border-top:1px solid var(--border); padding:14px 16px;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+<div>
+<div style="font-weight:600; font-size:0.9rem;">&#128202; Tableau des probabilités</div>
+<div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">Affiche toutes les chances de résultat</div>
+</div>
+<button id="toggleProbaBtn" onclick="toggleOption('proba')" style="width:46px; height:26px; border-radius:13px; border:none; cursor:pointer; transition:background 0.2s; background:#555; position:relative; flex-shrink:0;">
+<span style="position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform 0.2s; display:block;" id="toggleProbaKnob"></span>
+</button>
+</div>
+<div style="display:flex; align-items:center; justify-content:space-between;">
+<div>
+<div style="font-weight:600; font-size:0.9rem;">&#128203; Mes lancers</div>
+<div style="font-size:0.75rem; color:var(--muted); margin-top:2px;">Historique de tous vos lancers</div>
+</div>
+<button id="toggleHistoryBtn" onclick="toggleOption('history')" style="width:46px; height:26px; border-radius:13px; border:none; cursor:pointer; transition:background 0.2s; background:#555; position:relative; flex-shrink:0;">
+<span style="position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform 0.2s; display:block;" id="toggleHistoryKnob"></span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Probability Table -->
+<div id="probaPanel" class="card hidden"></div>
+<!-- Roll History -->
+<div id="historyPanel" class="card hidden">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+<span style="font-weight:700; font-size:0.95rem;">&#128203; Mes lancers</span>
+<button onclick="clearRollHistory()" style="background:rgba(255,71,87,0.15); border:1px solid rgba(255,71,87,0.3); border-radius:8px; padding:5px 10px; font-size:0.75rem; font-weight:700; color:var(--danger); cursor:pointer;">&#128465;&#65039; Remise à zéro</button>
+</div>
+<div id="historyStats" style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;"></div>
+<div id="historyList" style="display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto;"></div>
+</div>
+</div>
+<!-- Combat Mode -->
+<div id="combatModeContent" class="hidden">
+<div class="card">
+<div id="combatPlayersContainer"></div>
+<button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="addCombatPlayer()">+ Ajouter un joueur</button>
+</div>
+</div>
+<div id="diceResults"></div>
+</main>
+<!-- FAB Dice -->
+<button class="fab dice" id="rollFab" onclick="rollDice()">🎲</button>
+</div>
+<!-- Counter App -->
+<div id="counterApp" class="hidden">
+<header class="app-header">
+<div class="header-left">
+<button class="home-btn" onclick="goHome()">🏠</button>
+<div class="app-logo counter">🏆</div>
+<span class="app-title">Compteurs</span>
+</div>
+<div class="header-actions">
+<button class="icon-btn" onclick="sortCountersDesc()" title="Trier par score décroissant">↓🔢</button>
+<button class="icon-btn" id="undoBtn" onclick="undoAction()" title="Annuler"><span class="undo-badge"></span>↩️</button>
+<button class="icon-btn danger" onclick="resetAllCounters()" title="Réinitialiser les scores">🔄</button>
+<div class="dropdown-container">
+<button class="icon-btn" onclick="toggleDropdownMenu()">⋯</button>
+<div class="dropdown-menu" id="dropdownMenu">
+<button class="dropdown-item" onclick="showSaveListDialog(); closeDropdownMenu();">💾 Sauvegarder</button>
+<button class="dropdown-item" onclick="showLoadListDialog(); closeDropdownMenu();">📂 Charger</button>
+<div class="dropdown-divider"></div>
+<button class="dropdown-item" onclick="exportData(); closeDropdownMenu();">📤 Exporter</button>
+<button class="dropdown-item" onclick="document.getElementById('importFileInput').click(); closeDropdownMenu();">📥 Importer</button>
+<div class="dropdown-divider"></div>
+<button class="dropdown-item" style="color:var(--danger)" onclick="deleteAllCounters(); closeDropdownMenu();">🗑️ Supprimer tous les compteurs</button>
+</div>
+</div>
+<input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+<button class="icon-btn" onclick="toggleDarkMode()">🌙</button>
+</div>
+</header>
+<main class="app-content">
+<div class="view-selector">
+<button class="view-btn active" onclick="setView('grid')">Grille</button>
+<button class="view-btn" onclick="setView('list')">Liste</button>
+<button class="view-btn" onclick="setView('circle')">Cercle</button>
+</div>
+<div id="currentListDisplay" style="text-align: center;"></div>
+<div id="counterDisplay"></div>
+</main>
+<!-- FAB Counter -->
+<button class="fab counter" onclick="showAddDialog()">+</button>
+</div>
+<!-- Notes App -->
+<div id="notesApp" class="hidden">
+<header class="app-header">
+<div class="header-left">
+<button class="home-btn" onclick="goHome()">🏠</button>
+<div class="app-logo" style="background:linear-gradient(135deg,#ffd43b,#fab005)">📝</div>
+<span class="app-title">Notes</span>
+</div>
+<div class="header-actions">
+<button class="icon-btn" title="Sauvegarder" onclick="showSaveNotesDialog()">💾</button>
+<button class="icon-btn" title="Charger" onclick="showLoadNotesDialog()">📂</button>
+<button class="icon-btn" onclick="toggleDarkMode()">🌙</button>
+</div>
+</header>
+<main class="app-content">
+<div id="notesCurrentListDisplay" style="margin-bottom:8px;"></div>
+<input class="notes-search" type="search" id="notesSearch" placeholder="🔍 Rechercher une note…" oninput="renderNotes()" autocomplete="off">
+<div id="notesCount" class="notes-count"></div>
+<div id="notesList"></div>
+</main>
+<!-- FAB Notes -->
+<button class="fab" style="background:linear-gradient(135deg,#ffd43b,#fab005);color:#000" onclick="openNoteEditor(null)">+</button>
+</div>
+<!-- Note Editor (full-screen overlay) -->
+<div id="noteEditorOverlay" class="note-editor-overlay">
+<div class="note-editor-header">
+<button class="home-btn" onclick="closeNoteEditor()" style="flex-shrink:0; background:rgba(0,0,0,0.15); color:rgba(0,0,0,0.7); border-color:rgba(0,0,0,0.15);">←</button>
+<input class="note-editor-title-input" id="noteEditorTitle" type="text" placeholder="Titre de la note…" maxlength="60">
+<button class="note-editor-save-btn" onclick="saveNote()" style="flex-shrink:0">✓ Sauver</button>
+</div>
+<textarea class="note-editor-body" id="noteEditorBody" placeholder="Commencez à écrire…"></textarea>
+<div class="note-editor-footer">
+<div class="note-color-swatches" id="noteColorSwatches"></div>
+</div>
+</div>
+<!-- Dialogs -->
+<div id="dialogOverlay" class="dialog-overlay" onclick="closeDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title" id="dialogTitle">Ajouter un compteur</h3>
+<div class="form-group">
+<label class="form-label">Nom</label>
+<input type="text" class="form-input" id="counterNameInput" placeholder="Nom du joueur">
+</div>
+<div class="form-group">
+<label class="form-label">Icône</label>
+<div class="icon-picker" id="iconPicker"></div>
+</div>
+<div class="form-group">
+<label class="form-label">Couleur — <span id="colorPreviewLabel" style="display:inline-flex;align-items:center;gap:6px;">sélectionnée : <span id="colorPreviewSwatch" style="display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);vertical-align:middle;"></span></span></label>
+<div class="color-picker" id="colorPicker"></div>
+</div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closeDialog()">Annuler</button>
+<button class="btn btn-primary" onclick="saveCounter()">Enregistrer</button>
+</div>
+</div>
+</div>
+<div id="counterValueModalOverlay" class="dialog-overlay" onclick="closeCounterValueModal(event)">
+<div class="custom-value-dialog" onclick="event.stopPropagation()">
+<div class="dialog-title">Modifier la valeur</div>
+<input type="number" class="custom-value-input" id="counterValueModalInput" placeholder="Entrer un nombre" onkeydown="if(event.key==='Enter')applyCounterValueModal('set')">
+<div class="dialog-actions" style="display:flex; flex-direction:column; gap:8px; margin-top:12px">
+<button class="btn" style="background:linear-gradient(135deg,#339af0,#1c7ed6);color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px;" onclick="applyCounterValueModal('set')"><span style="font-size:1.2rem;">✏️</span><span style="font-size:0.8rem;font-weight:700;">Définir</span></button>
+<div style="display:flex; gap:8px">
+<button class="btn" style="flex:1;background:linear-gradient(135deg,#ff4757,#c0392b);color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px;" onclick="applyCounterValueModal('subtract')"><span style="font-size:1.2rem;">➖</span><span style="font-size:0.8rem;font-weight:700;">Soustraire</span></button>
+<button class="btn" style="flex:1;background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px;" onclick="applyCounterValueModal('add')"><span style="font-size:1.2rem;">➕</span><span style="font-size:0.8rem;font-weight:700;">Ajouter</span></button>
+</div>
+<button class="btn btn-secondary" onclick="closeCounterValueModal()">Annuler</button>
+</div>
+</div>
+</div>
+<div id="customValueOverlay" class="dialog-overlay" onclick="cancelCustomValue(event)">
+<div class="custom-value-dialog" onclick="event.stopPropagation()">
+<div class="dialog-title">Modifier la valeur</div>
+<input type="number" class="custom-value-input" id="customValueInput" placeholder="0" onkeydown="if(event.key==='Enter')applyCustomValue()">
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="cancelCustomValue()">Annuler</button>
+<button class="btn btn-primary" id="customValueValidateBtn" onclick="applyCustomValue()">Valider</button>
+</div>
+</div>
+</div>
+<div id="confirmOverlay" class="dialog-overlay" onclick="cancelConfirm(event)">
+<div class="confirm-dialog" onclick="event.stopPropagation()">
+<div class="confirm-icon">⚠️</div>
+<h3 class="dialog-title">Confirmer</h3>
+<p class="confirm-message" id="confirmMessage">Êtes-vous sûr ?</p>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="cancelConfirm()">Annuler</button>
+<button class="btn btn-danger" onclick="confirmDelete()">Supprimer</button>
+</div>
+</div>
+</div>
+<div id="saveListOverlay" class="dialog-overlay" onclick="closeSaveListDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title">Sauvegarder la liste</h3>
+<div id="existingSavesContainer" style="margin-bottom:14px;"></div>
+<div class="form-group">
+<label class="form-label">Nom de la liste</label>
+<input type="text" class="form-input" id="saveListNameInput" placeholder="Ex: Partie JDR">
+</div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closeSaveListDialog()">Annuler</button>
+<button class="btn btn-primary" onclick="saveCounterList()">Sauvegarder</button>
+</div>
+</div>
+</div>
+<div id="loadListOverlay" class="dialog-overlay" onclick="closeLoadListDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title">Charger une liste</h3>
+<div id="savedListsContainer"></div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closeLoadListDialog()">Fermer</button>
+</div>
+</div>
+</div>
+<!-- Notes Save Dialog -->
+<div id="saveNotesOverlay" class="dialog-overlay" onclick="closeSaveNotesDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title">Sauvegarder les notes</h3>
+<div id="existingNotesSavesContainer" style="margin-bottom:14px;"></div>
+<div class="form-group">
+<label class="form-label">Nom de la sauvegarde</label>
+<input type="text" class="form-input" id="saveNotesNameInput" placeholder="Ex: Campagne JDR">
+</div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closeSaveNotesDialog()">Annuler</button>
+<button class="btn btn-primary" onclick="saveNotesList()">Sauvegarder</button>
+</div>
+</div>
+</div>
+<!-- Notes Load Dialog -->
+<div id="loadNotesOverlay" class="dialog-overlay" onclick="closeLoadNotesDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title">Charger des notes</h3>
+<div id="savedNotesListsContainer"></div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closeLoadNotesDialog()">Fermer</button>
+</div>
+</div>
+</div>
+<div id="playerEditOverlay" class="dialog-overlay" onclick="closePlayerEditDialog(event)">
+<div class="dialog" onclick="event.stopPropagation()">
+<h3 class="dialog-title" id="playerEditTitle">Joueur</h3>
+<div class="form-group">
+<label class="form-label">Nom</label>
+<input type="text" class="form-input" id="playerEditNameInput" placeholder="Nom du joueur" maxlength="30">
+</div>
+<div class="form-group">
+<label class="form-label">Couleur du bandeau</label>
+<div class="color-picker" id="playerEditColorPicker"></div>
+</div>
+<div class="dialog-actions">
+<button class="btn btn-secondary" onclick="closePlayerEditDialog()">Annuler</button>
+<button class="btn btn-primary" onclick="savePlayerEdit()">Enregistrer</button>
+</div>
+</div>
+</div>
+<!-- ❤️ Support Modal -->
+<div class="support-modal-overlay" id="supportModalOverlay" onclick="closeSupportModal(event)">
+<div class="support-modal" onclick="event.stopPropagation()">
+<button class="support-modal-close" onclick="closeSupportModal()">&times;</button>
+<div class="support-modal-icon">❤️</div>
+<h2 class="support-modal-title">Soutenir Mat's Tools</h2>
+<p class="support-modal-text">Je crée des applications mobiles utiles et sans publicité intrusive.</p>
+<ul class="support-modal-list">
+<li>Ajouter de nouvelles fonctionnalités</li>
+<li>Maintenir les applications gratuites</li>
+<li>Améliorer les performances</li>
+</ul>
+<p class="support-modal-text" style="font-weight:600;margin-bottom:20px">Merci énormément pour votre aide ☕</p>
+<a href="https://ko-fi.com/supermatv2" target="_blank" class="kofi-btn">☕ Soutenir sur Ko-fi</a>
+</div>
+</div>
+<script>
+// ============ STATE ============
+let state = {
+diceMode: 'simple',
+dicePool: [],
+playerPools: [[], []],
+playerNames: ['Joueur 1', 'Joueur 2'],
+playerColors: ['#ff6b6b', '#4dabf7'],
+counters: [],
+savedCounterLists: [],
+currentListName: null,
+savedNotesLists: [],
+currentNotesListName: null,
+currentView: 'grid',
+editingCounterId: null,
+pendingDelete: null,
+customValueCounterId: null,
+selectedColor: null,
+selectedIcon: null,
+darkMode: true,
+notes: [],
+showProba: false,
+showHistory: false,
+rollHistory: []
+};
+let undoStack = [];
+// Helpers
+const COLORS = [
+// Rouges & roses
+'#ff4757', '#ff6b81', '#ff6b6b', '#f783ac', '#e64980',
+// Violets
+'#be4bdb', '#9c36b5', '#7c3aed', '#5f3dc4', '#748ffc',
+// Bleus
+'#339af0', '#4dabf7', '#22b8cf', '#15aabf', '#0ca678',
+// Verts
+'#51cf66', '#2f9e44', '#94d82d', '#66a80f', '#a9e34b',
+// Jaunes & oranges
+'#ffd43b', '#fab005', '#fd7e14', '#f76707', '#ff922b',
+// Neutres chauds
+'#e8590c', '#c92a2a', '#862e9c'
+];
+const ICONS = [
+// ── Personnages ──
+'🧙','🧝','🧛','🦸','🥷','🧚','🧜','🧟','👹','👺','👻','🤴','👸','🧑‍⚔️','🪄','🧿',
+// ── Armes & Combat ──
+'⚔️','🗡️','🏹','🛡️','🪃','🔱','⚙️','💣','🪓','🔫','🗡️','🧨',
+// ── Magie & Mystère ──
+'🔮','🪄','✨','💫','🌀','🔯','☄️','🌙','⭐','💎','🏺','📜','🗺️','🧿','🕯️','🔭',
+// ── Créatures ──
+'🐉','🦄','🦁','🐺','🦊','🦅','🐍','🦂','🦇','🐗','🦖','🦕','🐲','🦋','🐙','🦑',
+// ── Nature & Éléments ──
+'🔥','💧','🌿','⚡','🌊','🌪️','🌑','❄️','🌋','💨','🍄','🌸','🍀','☘️','🌾','🪨',
+// ── Ressources & Économie ──
+'💰','💎','🪙','🏆','👑','🗝️','📦','🧪','⚗️','🧲','🪤','🔑',
+// ── Jeux de société ──
+'🎲','🎯','🃏','♟️','🀄','🎴','🎪','🎭','🎠','🎡','🎢','🎰',
+// ── Points & Scores ──
+'⭐','🌟','💥','❤️','🖤','💜','💙','💚','💛','🧡','❤️‍🔥','💔',
+// ── Lieux & Bâtiments ──
+'🏰','🗼','⛩️','🏯','🕌','🏛️','⛺','🗽','🌉','🏔️','🗻','🏝️',
+// ── Objets & Équipement ──
+'🎒','🧳','👜','💼','🪬','🧸','🪆','🎁','📿','🏺','🪞','🧭',
+// ── Temps & Actions ──
+'⏳','⌛','🕐','📯','🔔','🎺','🥁','🎵','💬','💭','🔍','📊'
+];
+const DICE_COLORS = { 'D3': '#20c997', 'D4': '#ff6b6b', 'D6': '#4dabf7', 'D8': '#51cf66', 'D10': '#ffd43b', 'D12': '#da77f2', 'D20': '#748ffc', 'D100': '#f783ac', 'DFATE': '#ff9f43', 'DFU': '#a29bfe' };
+const DICE_MAX = { 'D3': 3, 'D4': 4, 'D6': 6, 'D8': 8, 'D10': 10, 'D12': 12, 'D20': 20, 'D100': 100, 'DFATE': 6, 'DFU': 6 };
+const DFATE_FACES = ['+', '+', '−', '−', '', ''];
+const DFU_FACES = ['oui', 'oui, mais', 'oui, et', 'non', 'non, mais', 'non, et'];
+// Special dice that return text, not numbers
+const SPECIAL_DICE = ['DFATE', 'DFU'];
+function rollSpecialDie(type) {
+const idx = Math.floor(Math.random() * 6);
+if (type === 'DFATE') return DFATE_FACES[idx];
+if (type === 'DFU') return DFU_FACES[idx];
+return '?';
+}
+// ============ SYSTEM ============
+function loadState() {
+const saved = localStorage.getItem('diceCounterApp');
+if (saved) state = { ...state, ...JSON.parse(saved) };
+if (!state.playerColors) state.playerColors = ['#ff6b6b', '#4dabf7'];
+if (!state.savedNotesLists) state.savedNotesLists = [];
+if (!state.darkMode) document.body.classList.add('light-mode');
+updateUndoButton();
+}
+function saveState() { localStorage.setItem('diceCounterApp', JSON.stringify(state)); }
+function toggleDarkMode() { state.darkMode = !state.darkMode; document.body.classList.toggle('light-mode'); saveState(); }
+// ============ NAVIGATION ============
+function openApp(app) {
+document.getElementById('homeScreen').classList.add('hidden');
+document.getElementById('diceApp').classList.add('hidden');
+document.getElementById('counterApp').classList.add('hidden');
+document.getElementById('notesApp').classList.add('hidden');
+document.getElementById(app + 'App').classList.remove('hidden');
+if (app === 'dice') {
+// Always reset to simple mode with correct tab highlighted
+setDiceMode('simple');
+updateDicePoolUI();
+initAdvancedOptions();
+}
+else if (app === 'counter') {
+// Restore the saved view and sync the button states
+restoreCounterView();
+renderCounters();
+}
+else if (app === 'notes') { renderNotes(); updateNotesCurrentListDisplay(); }
+}
+function restoreCounterView() {
+const view = state.currentView || 'grid';
+const labels = { grid: 'grille', list: 'liste', circle: 'cercle' };
+document.querySelectorAll('.view-btn').forEach(b => {
+b.classList.toggle('active', b.textContent.toLowerCase() === labels[view]);
+});
+}
+function goHome() {
+document.getElementById('homeScreen').classList.remove('hidden');
+document.getElementById('diceApp').classList.add('hidden');
+document.getElementById('counterApp').classList.add('hidden');
+document.getElementById('notesApp').classList.add('hidden');
+}
+// ============ UNDO SYSTEM ============
+function saveForUndo() {
+undoStack.push(JSON.stringify(state.counters));
+if (undoStack.length > 10) undoStack.shift();
+updateUndoButton();
+}
+function undoAction() {
+if (undoStack.length === 0) return;
+const previousState = undoStack.pop();
+state.counters = JSON.parse(previousState);
+saveState(); renderCounters(); updateUndoButton();
+}
+function updateUndoButton() {
+const btn = document.getElementById('undoBtn');
+if(!btn) return;
+if (undoStack.length > 0) btn.classList.add('has-undo');
+else btn.classList.remove('has-undo');
+}
+// ============ DICE LOGIC ============
+function setDiceMode(mode) {
+state.diceMode = mode;
+document.getElementById('simpleModeBtn').classList.toggle('active', mode === 'simple');
+document.getElementById('combatModeBtn').classList.toggle('active', mode === 'combat');
+document.getElementById('simpleModeContent').classList.toggle('hidden', mode !== 'simple');
+document.getElementById('combatModeContent').classList.toggle('hidden', mode !== 'combat');
+document.getElementById('diceResults').innerHTML = '';
+if (mode === 'simple') updateDicePoolUI();
+else renderCombatPlayers();
+updateFabState();
+}
+function addDiceToPool(type) { state.dicePool.push({ type, id: Date.now() }); updateDicePoolUI(); updateFabState(); saveState(); if (state.showProba) renderProbaTable(); }
+function removeFromPool(id) { state.dicePool = state.dicePool.filter(d => d.id !== id); updateDicePoolUI(); updateFabState(); saveState(); if (state.showProba) renderProbaTable(); }
+function updateDicePoolUI() {
+const pool = document.getElementById('dicePool');
+pool.innerHTML = state.dicePool.length === 0
+? '<div style="color:var(--muted); font-size:0.9rem">Cliquez sur les dés pour les ajouter</div>'
+: state.dicePool.map(d => `<div class="pool-dice" style="background:${DICE_COLORS[d.type]}">${d.type}<button class="pool-dice-delete" onclick="removeFromPool(${d.id})">✕</button></div>`).join('');
+}
+function addPlayerDice(idx, type) {
+if (!state.playerPools[idx]) state.playerPools[idx] = [];
+state.playerPools[idx].push({ type, id: Date.now() });
+updatePlayerDiceUI(idx); updateFabState(); saveState();
+}
+function removePlayerDice(idx, id) {
+state.playerPools[idx] = state.playerPools[idx].filter(d => d.id !== id);
+updatePlayerDiceUI(idx); updateFabState(); saveState();
+}
+function updatePlayerDiceUI(idx) {
+const list = document.getElementById(`playerDiceList_${idx}`);
+if (!list) return;
+const pool = state.playerPools[idx] || [];
+list.innerHTML = pool.length === 0
+? '<div style="color:var(--muted); font-size:0.8rem">Aucun dé</div>'
+: pool.map(d => `<div class="pool-dice" style="background:${DICE_COLORS[d.type]}; font-size:0.8em; padding:4px 8px">${d.type}<button class="pool-dice-delete" style="width:14px; height:14px" onclick="removePlayerDice(${idx}, ${d.id})">✕</button></div>`).join('');
+}
+// ── Dynamic combat players ──
+const DEFAULT_PLAYER_COLORS = ['#ff6b6b','#4dabf7','#51cf66','#ffd43b','#da77f2','#748ffc','#f783ac','#20c997'];
+function renderCombatPlayers() {
+const container = document.getElementById('combatPlayersContainer');
+if (!container) return;
+// Ensure arrays are properly sized
+const n = state.playerNames.length;
+while (state.playerPools.length < n) state.playerPools.push([]);
+while (state.playerColors.length < n) state.playerColors.push(DEFAULT_PLAYER_COLORS[state.playerColors.length % DEFAULT_PLAYER_COLORS.length]);
+container.innerHTML = state.playerNames.map((name, idx) => {
+const color = state.playerColors[idx] || DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length];
+const textColor = getContrastForColor(color);
+return `<div class="player-setup" id="playerSetup_${idx}">
+<div class="player-setup-header" style="background:${color}; display:flex; align-items:center; justify-content:space-between;">
+<span class="editable-name" style="color:${textColor}; cursor:pointer; flex:1;" onclick="showPlayerEditDialog(${idx})">${name}</span>
+${n > 2 ? `<button onclick="removeCombatPlayer(${idx})" style="background:rgba(0,0,0,0.25); border:none; border-radius:50%; width:24px; height:24px; color:${textColor}; cursor:pointer; font-size:0.8rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;">✕</button>` : ''}
+</div>
+<div class="player-setup-body">
+<div class="player-dice-list" id="playerDiceList_${idx}"></div>
+<div style="display:grid; grid-template-columns: repeat(5,1fr); gap:6px;">
+<button class="quick-dice-btn" style="background:rgba(32,201,151,0.8)" onclick="addPlayerDice(${idx},'D3')">D3</button>
+<button class="quick-dice-btn" style="background:rgba(255,107,107,0.8)" onclick="addPlayerDice(${idx},'D4')">D4</button>
+<button class="quick-dice-btn" style="background:rgba(77,171,247,0.8)" onclick="addPlayerDice(${idx},'D6')">D6</button>
+<button class="quick-dice-btn" style="background:rgba(81,207,102,0.8)" onclick="addPlayerDice(${idx},'D8')">D8</button>
+<button class="quick-dice-btn" style="background:rgba(255,212,59,0.8)" onclick="addPlayerDice(${idx},'D10')">D10</button>
+<button class="quick-dice-btn" style="background:rgba(218,119,242,0.8)" onclick="addPlayerDice(${idx},'D12')">D12</button>
+<button class="quick-dice-btn" style="background:rgba(116,143,252,0.8)" onclick="addPlayerDice(${idx},'D20')">D20</button>
+<button class="quick-dice-btn" style="background:rgba(247,131,172,0.8)" onclick="addPlayerDice(${idx},'D100')">D100</button>
+<button class="quick-dice-btn" style="background:rgba(255,159,67,0.8)" onclick="addPlayerDice(${idx},'DFATE')">Fate</button>
+<button class="quick-dice-btn" style="background:rgba(162,155,254,0.8)" onclick="addPlayerDice(${idx},'DFU')">Fu</button>
+</div>
+</div>
+</div>`;
+}).join('');
+state.playerNames.forEach((_, idx) => updatePlayerDiceUI(idx));
+}
+function getContrastForColor(hex) {
+const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+return ((r*299)+(g*587)+(b*114))/1000 >= 128 ? '#000' : '#fff';
+}
+function addCombatPlayer() {
+const idx = state.playerNames.length;
+state.playerNames.push(`Joueur ${idx+1}`);
+state.playerColors.push(DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length]);
+state.playerPools.push([]);
+saveState(); renderCombatPlayers(); updateFabState();
+}
+function removeCombatPlayer(idx) {
+if (state.playerNames.length <= 2) return;
+state.playerNames.splice(idx, 1);
+state.playerColors.splice(idx, 1);
+state.playerPools.splice(idx, 1);
+saveState(); renderCombatPlayers(); updateFabState();
+}
+// Player Edit Dialog
+let editingPlayerIdx = null;
+let editingPlayerColor = null;
+function showPlayerEditDialog(idx) {
+editingPlayerIdx = idx;
+editingPlayerColor = state.playerColors[idx] || DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length];
+document.getElementById('playerEditTitle').textContent = `Modifier le joueur ${idx+1}`;
+document.getElementById('playerEditNameInput').value = state.playerNames[idx];
+// Build color picker
+document.getElementById('playerEditColorPicker').innerHTML = COLORS.map(c =>
+`<div class="color-option ${c === editingPlayerColor ? 'selected' : ''}" style="background:${c}" onclick="selectPlayerEditColor('${c}')"></div>`
+).join('');
+document.getElementById('playerEditOverlay').classList.add('show');
+setTimeout(() => document.getElementById('playerEditNameInput').focus(), 100);
+}
+function selectPlayerEditColor(c) {
+editingPlayerColor = c;
+document.querySelectorAll('#playerEditColorPicker .color-option').forEach(o =>
+o.classList.toggle('selected', o.style.background === c)
+);
+}
+function savePlayerEdit() {
+const name = document.getElementById('playerEditNameInput').value.trim();
+if (!name) return;
+state.playerNames[editingPlayerIdx] = name;
+state.playerColors[editingPlayerIdx] = editingPlayerColor;
+saveState(); closePlayerEditDialog(); renderCombatPlayers();
+}
+function closePlayerEditDialog(e) {
+if (!e || e.target === e.currentTarget) document.getElementById('playerEditOverlay').classList.remove('show');
+}
+function updatePlayerNamesDisplay() { renderCombatPlayers(); }
+function clearAllDice() {
+if (state.diceMode === 'simple') state.dicePool = [];
+else state.playerPools = state.playerNames.map(() => []);
+updateDicePoolUI(); renderCombatPlayers();
+document.getElementById('diceResults').innerHTML = '';
+updateFabState(); saveState();
+}
+function updateFabState() {
+const fab = document.getElementById('rollFab');
+if(!fab) return;
+const canRoll = state.diceMode === 'simple'
+? state.dicePool.length > 0
+: state.playerPools.every(p => p && p.length > 0) && state.playerNames.length >= 2;
+fab.classList.toggle('disabled', !canRoll);
+}
+function rollDice() {
+if (document.getElementById('rollFab').classList.contains('disabled')) return;
+state.diceMode === 'simple' ? rollSimpleMode() : rollCombatMode();
+}
+// ── Dice SVG Generators ──
+function makeDieSVG(type, value, color) {
+const size = 64;
+const c = color;
+const textColor = '#fff';
+// SVG text helper: centered at geometric centroid of each shape
+// dominant-baseline="central" + text-anchor="middle" = perfect center
+const txt = (x, y, fs, val) =>
+`<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-size="${fs}" font-weight="900" font-family="Outfit,sans-serif">${val}</text>`;
+// DFATE - rounded square with +, − or blank
+if (type === 'DFATE') {
+const display = value === '+' ? '+' : value === '−' ? '−' : '';
+const fs = 32;
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<rect x="4" y="4" width="56" height="56" rx="12" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<rect x="4" y="4" width="56" height="28" rx="12" fill="rgba(255,255,255,0.08)"/>
+${display ? txt(32, 32, fs, display) : ''}
+</svg>`;
+}
+// DFU - rounded square with 1 or 2 lines of text
+if (type === 'DFU') {
+const parts = value.split('\n');
+const linesSVG = parts.length === 1
+? txt(32, 32, 20, parts[0])
+: `<text text-anchor="middle" fill="${textColor}" font-weight="900" font-family="Outfit,sans-serif" font-size="20">
+<tspan x="32" y="25">${parts[0]}</tspan>
+<tspan x="32" y="45">${parts[1]}</tspan>
+</text>`;
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<rect x="4" y="4" width="56" height="56" rx="12" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<rect x="4" y="4" width="56" height="28" rx="12" fill="rgba(255,255,255,0.08)"/>
+${linesSVG}
+</svg>`;
+}
+// D6 - rounded square with numeric value (no dots)
+if (type === 'D6') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<rect x="4" y="4" width="56" height="56" rx="12" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<rect x="4" y="4" width="56" height="28" rx="12" fill="rgba(255,255,255,0.08)"/>
+${txt(32, 32, 26, value)}
+</svg>`;
+}
+// D3 - triangle — centroid of equilateral triangle (32,6),(60,58),(4,58) = (32, 40.7)
+if (type === 'D3') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,6 60,58 4,58" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,6 60,58 4,58" fill="rgba(255,255,255,0.06)"/>
+${txt(32, 41, 22, value)}
+</svg>`;
+}
+// D4 - triangle — centroid of (32,4),(62,60),(2,60) = (32, 41.3)
+if (type === 'D4') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,4 62,60 2,60" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,4 62,60 2,60" fill="rgba(255,255,255,0.07)"/>
+${txt(32, 42, 21, value)}
+</svg>`;
+}
+// D8 - diamond — centroid of (32,2),(62,32),(32,62),(2,32) = (32,32)
+if (type === 'D8') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,2 62,32 32,62 2,32" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,2 62,32 32,32 2,32" fill="rgba(255,255,255,0.08)"/>
+${txt(32, 32, 23, value)}
+</svg>`;
+}
+// D10 - pentagon-like — centroid of (32,2),(58,22),(48,60),(16,60),(6,22) ≈ (32, 33.2)
+if (type === 'D10') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,2 58,22 48,60 16,60 6,22" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,2 58,22 48,22 16,22 6,22" fill="rgba(255,255,255,0.08)"/>
+${txt(32, 35, 22, value)}
+</svg>`;
+}
+// D12 - pentagon — centroid of (32,2),(60,22),(50,56),(14,56),(4,22) ≈ (32, 31.6)
+if (type === 'D12') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,2 60,22 50,56 14,56 4,22" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,2 60,22 50,22 14,22 4,22" fill="rgba(255,255,255,0.07)"/>
+${txt(32, 33, 21, value)}
+</svg>`;
+}
+// D20 - heptagon — centroid of points ≈ (32, 36)
+if (type === 'D20') {
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<polygon points="32,2 56,14 62,42 46,62 18,62 2,42 8,14" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<polygon points="32,2 56,14 62,14 8,14 8,14" fill="rgba(255,255,255,0.08)"/>
+${txt(32, 36, 21, value)}
+</svg>`;
+}
+// D100 - circle, centered value only (no % symbol)
+return `<svg width="${size}" height="${size}" viewBox="0 0 64 64" class="die-svg">
+<circle cx="32" cy="32" r="30" fill="${c}" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+<ellipse cx="32" cy="20" rx="22" ry="10" fill="rgba(255,255,255,0.08)"/>
+${txt(32, 32, value >= 100 ? 18 : 22, value)}
+</svg>`;
+}
+function rollSimpleMode() {
+const results = state.dicePool.map(d => {
+const isSpecial = SPECIAL_DICE.includes(d.type);
+const value = isSpecial ? rollSpecialDie(d.type) : Math.floor(Math.random() * DICE_MAX[d.type]) + 1;
+return { type: d.type, value, color: DICE_COLORS[d.type], isSpecial };
+});
+const numericResults = results.filter(r => !r.isSpecial);
+const total = numericResults.reduce((s, r) => s + r.value, 0);
+const hasSpecial = results.some(r => r.isSpecial);
+// Build tray with all dice showing "?" first, then animate to real values
+const diceHTML = results.map((r, i) => `
+<div class="die-wrapper rolling" id="die_${i}" style="animation-delay:${i * 0.4}s">
+<div class="die-face-wrap">
+<div id="die_svg_${i}">${makeDieSVG(r.type, r.value, r.color)}</div>
+</div>
+<div class="die-shadow"></div>
+</div>
+`).join('');
+const totalLine = hasSpecial && numericResults.length === 0
+? `<span class="tray-total-label">Résultats affichés</span>`
+: `<span class="tray-total-label">TOTAL</span><span class="tray-total-value">${total}</span>
+${results.length > 1 && numericResults.length > 1 ? `<span style="font-size:0.75rem;color:rgba(255,255,255,0.3);">(${numericResults.map(r=>r.value).join(' + ')})</span>` : ''}`;
+document.getElementById('diceResults').innerHTML = `
+<div class="dice-tray fade-in">
+<div class="dice-tray-label">🎲 Lancer</div>
+<div class="dice-roll-area">${diceHTML}</div>
+<div class="tray-total">
+${totalLine}
+</div>
+</div>`;
+// Stagger remove rolling class so animation plays then settles
+results.forEach((_, i) => {
+setTimeout(() => {
+const el = document.getElementById(`die_${i}`);
+if (el) el.classList.remove('rolling');
+}, 750 + i * 400);
+});
+// Track history & refresh proba
+addToHistory(results, (hasSpecial && numericResults.length === 0) ? null : total);
+if (state.showProba) renderProbaTable();
+}
+function rollCombatMode() {
+const results = state.playerNames.map((name, idx) => {
+const pool = state.playerPools[idx] || [];
+const rolls = pool.map(d => {
+const isSpecial = SPECIAL_DICE.includes(d.type);
+const value = isSpecial ? rollSpecialDie(d.type) : Math.floor(Math.random() * DICE_MAX[d.type]) + 1;
+return { type: d.type, value, color: DICE_COLORS[d.type], isSpecial };
+});
+const numericTotal = rolls.filter(r => !r.isSpecial).reduce((s,r) => s+r.value, 0);
+return { name, color: state.playerColors[idx] || DEFAULT_PLAYER_COLORS[idx % DEFAULT_PLAYER_COLORS.length], rolls, total: numericTotal };
+});
+const maxTotal = Math.max(...results.map(r => r.total));
+const isDrawn = results.filter(r => r.total === maxTotal).length > 1;
+// Check if all dice across all players are special (no numeric dice)
+const allSpecial = results.every(p => p.rolls.every(r => r.isSpecial));
+// Phase 1 — animate dice trays per player
+let globalDieIdx = 0;
+let html = '';
+results.forEach((p, pIdx) => {
+const textColor = getContrastForColor(p.color);
+const diceHTML = p.rolls.map((r, dIdx) => {
+const gi = globalDieIdx++;
+return `<div class="die-wrapper" id="cdie_${gi}" style="animation-delay:${gi * 0.4}s">
+<div class="die-face-wrap">${makeDieSVG(r.type, r.value, r.color)}</div>
+<div class="die-shadow"></div>
+</div>`;
+}).join('');
+html += `<div class="dice-tray dice-tray-compact fade-in" style="margin-bottom:8px; border-color:${p.color}44; animation-delay:${pIdx * 0.15}s">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+<div style="width:12px;height:12px;border-radius:50%;background:${p.color};flex-shrink:0;"></div>
+<span style="font-weight:700;font-size:0.95rem;color:rgba(255,255,255,0.9);">${p.name}</span>
+</div>
+<div class="dice-roll-area">${diceHTML}</div>
+</div>`;
+});
+// Phase 2 — scores summary (delayed, appears after all dice land)
+const totalDice = results.reduce((s, p) => s + p.rolls.length, 0);
+const summaryDelay = (totalDice * 400 + 1000);
+const scoresHTML = results.map(p => {
+const isWinner = p.total === maxTotal && !isDrawn;
+const isTied = p.total === maxTotal && isDrawn;
+const highlight = isWinner || isTied;
+return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:${highlight ? p.color+'22' : 'var(--glass)'};border:1px solid ${highlight ? p.color : 'var(--border)'};">
+<div style="width:10px;height:10px;border-radius:50%;background:${p.color};flex-shrink:0;"></div>
+<span style="font-weight:700;font-size:0.9rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+${isWinner ? '<span>🏆</span>' : ''}
+${isTied ? '<span>🤝</span>' : ''}
+<span style="font-family:'Outfit',sans-serif;font-weight:900;font-size:1.4rem;color:${p.color};">${p.total}</span>
+</div>`;
+}).join('');
+html += allSpecial ? '' : `<div id="combatScoreSummary" style="opacity:0;transition:opacity 0.5s ease;margin-top:4px;">
+<div class="card" style="padding:12px;">
+<div style="display:flex;flex-direction:column;gap:6px;">${scoresHTML}</div>
+${isDrawn ? '<div style="text-align:center;margin-top:8px;font-weight:700;color:var(--warning);">Égalité !</div>' : ''}
+</div>
+</div>`;
+document.getElementById('diceResults').innerHTML = html + `<div id="combatResultsEnd" style="height:80px;"></div>`;
+// Scroll immediately so player 1 tray is at top of viewport (below sticky headers)
+setTimeout(() => {
+const el = document.getElementById('diceResults');
+if (el) {
+const headerOffset = 48 + 56; // shortcuts-bar + app-header
+const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
+window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+}
+}, 80);
+// Fade in score summary after all dice have landed
+if (!allSpecial) {
+setTimeout(() => {
+const el = document.getElementById('combatScoreSummary');
+if (el) el.style.opacity = '1';
+}, summaryDelay);
+// Scroll to bottom after summary appears
+setTimeout(() => {
+const anchor = document.getElementById('combatResultsEnd');
+if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}, summaryDelay + 400);
+}
+}
+// ============ ADVANCED OPTIONS ============
+function toggleAdvancedPanel() {
+const panel = document.getElementById('advancedPanel');
+const chevron = document.getElementById('advancedPanelChevron');
+const isOpen = panel.style.display !== 'none';
+panel.style.display = isOpen ? 'none' : 'block';
+chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+function toggleOption(type) {
+if (type === 'proba') {
+state.showProba = !state.showProba;
+updateToggleUI('toggleProbaBtn', 'toggleProbaKnob', state.showProba);
+const panel = document.getElementById('probaPanel');
+if (state.showProba) { panel.classList.remove('hidden'); renderProbaTable(); }
+else panel.classList.add('hidden');
+} else {
+state.showHistory = !state.showHistory;
+updateToggleUI('toggleHistoryBtn', 'toggleHistoryKnob', state.showHistory);
+const panel = document.getElementById('historyPanel');
+if (state.showHistory) { panel.classList.remove('hidden'); renderHistory(); }
+else panel.classList.add('hidden');
+}
+saveState();
+}
+function updateToggleUI(btnId, knobId, active) {
+const btn = document.getElementById(btnId);
+const knob = document.getElementById(knobId);
+if (!btn || !knob) return;
+btn.style.background = active ? 'var(--accent)' : '#555';
+knob.style.transform = active ? 'translateX(20px)' : 'translateX(0)';
+}
+function initAdvancedOptions() {
+if (!state.rollHistory) state.rollHistory = [];
+if (state.showProba === undefined) state.showProba = false;
+if (state.showHistory === undefined) state.showHistory = false;
+updateToggleUI('toggleProbaBtn', 'toggleProbaKnob', state.showProba);
+updateToggleUI('toggleHistoryBtn', 'toggleHistoryKnob', state.showHistory);
+const probaPanel = document.getElementById('probaPanel');
+const histPanel = document.getElementById('historyPanel');
+if (probaPanel) { if (state.showProba) { probaPanel.classList.remove('hidden'); renderProbaTable(); } else probaPanel.classList.add('hidden'); }
+if (histPanel) { if (state.showHistory) { histPanel.classList.remove('hidden'); renderHistory(); } else histPanel.classList.add('hidden'); }
+}
+// ── Proba table state ──
+let _probaDist = null, _probaTotal = 0, _probaMin = 0, _probaMax = 0;
+let _probaMenu = null;
+function renderProbaTable() {
+const panel = document.getElementById('probaPanel');
+if (!panel) return;
+_probaMenu = null;
+const numericDice = state.dicePool.filter(d => !SPECIAL_DICE.includes(d.type));
+if (numericDice.length === 0) {
+panel.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; text-align:center; padding:8px 0;">Ajoutez des des numeriques pour voir les probabilites.</div>';
+_probaDist = null; return;
+}
+let dist = [1];
+for (const d of numericDice) {
+const max = DICE_MAX[d.type];
+const newDist = new Array(dist.length + max).fill(0);
+for (let i = 0; i < dist.length; i++) {
+if (!dist[i]) continue;
+for (let face = 1; face <= max; face++) newDist[i + face] += dist[i];
+}
+dist = newDist;
+}
+_probaDist = dist;
+_probaTotal = dist.reduce((s, v) => s + v, 0);
+_probaMin = dist.findIndex(v => v > 0);
+_probaMax = dist.length - 1;
+_drawProbaRows(panel, numericDice);
+}
+function _drawProbaRows(panel, numericDice) {
+if (!numericDice) numericDice = state.dicePool.filter(d => !SPECIAL_DICE.includes(d.type));
+const dist = _probaDist, total = _probaTotal, minVal = _probaMin, maxVal = _probaMax;
+const maxCount = Math.max(...dist);
+const m = _probaMenu;
+const diceLabel = numericDice.map(d =>
+'<span style="background:' + DICE_COLORS[d.type] + '; color:#fff; padding:2px 7px; border-radius:6px; font-size:0.75rem; font-weight:700;">' + d.type + '</span>'
+).join(' ');
+let html = '<div style="margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">' +
+'<span style="font-weight:700; font-size:0.9rem;">Probabilites &#8212;</span>' + diceLabel +
+'<span style="font-size:0.72rem; color:var(--muted); margin-left:4px;">Cliquer une valeur pour analyser</span></div>';
+// Context menu
+if (m) {
+const accent = m.mode === 'gte' ? '#00d4aa' : m.mode === 'lte' ? '#748ffc' : '#ffd43b';
+html += '<div style="margin-bottom:10px; background:rgba(0,0,0,0.2); border:1px solid ' + accent + '55; border-radius:12px; padding:10px 12px;">';
+if (m.mode === 'pick') {
+html += '<div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; color:var(--fg);">Analyse pour <strong style="color:var(--accent);">' + m.val + '</strong></div>' +
+'<div style="display:flex; gap:6px; flex-wrap:wrap;">' +
+'<button onclick="probaSetMode(\'gte\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #00d4aa55; cursor:pointer; background:#00d4aa18; color:#00d4aa; font-weight:700; font-size:0.85rem; font-family:inherit;">&ge; ' + m.val + '</button>' +
+'<button onclick="probaSetMode(\'lte\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #748ffc55; cursor:pointer; background:#748ffc18; color:#748ffc; font-weight:700; font-size:0.85rem; font-family:inherit;">&le; ' + m.val + '</button>' +
+'<button onclick="probaSetMode(\'range\')" style="flex:1; padding:8px 6px; border-radius:8px; border:1px solid #ffd43b55; cursor:pointer; background:#ffd43b18; color:#ffd43b; font-weight:700; font-size:0.85rem; font-family:inherit;">' + m.val + ' &rarr; ?</button>' +
+'<button onclick="probaCloseMenu()" style="padding:8px 10px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+'</div>';
+} else if (m.mode === 'range') {
+html += '<div style="font-size:0.8rem; font-weight:700; margin-bottom:8px; color:#ffd43b;">Intervalle : de ' + m.val + ' &agrave; ...</div>' +
+'<div style="display:flex; gap:6px; align-items:center;">' +
+'<input id="probaRangeInput" type="number" min="' + (m.val + 1) + '" max="' + maxVal + '" placeholder="valeur max" ' +
+'style="flex:1; padding:8px 10px; border-radius:8px; border:1px solid #ffd43b66; background:var(--glass); color:var(--fg); font-family:inherit; font-size:0.95rem; font-weight:700; outline:none;" ' +
+'oninput="probaApplyRange()">' +
+'<button onclick="probaCloseMenu()" style="padding:8px 10px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+'</div>';
+} else {
+let pct = 0, label = '';
+if (m.mode === 'gte') {
+for (let v = m.val; v <= maxVal; v++) pct += (dist[v] || 0) / total * 100;
+label = '&ge; ' + m.val;
+} else if (m.mode === 'lte') {
+for (let v = minVal; v <= m.val; v++) pct += (dist[v] || 0) / total * 100;
+label = '&le; ' + m.val;
+} else if (m.mode === 'range-result') {
+for (let v = m.val; v <= m.val2; v++) pct += (dist[v] || 0) / total * 100;
+label = m.val + ' &rarr; ' + m.val2;
+}
+const pctStr = pct < 0.1 ? '<0.1' : pct.toFixed(1);
+html += '<div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">' +
+'<div><span style="font-size:0.8rem; color:var(--muted);">Probabilite de </span>' +
+'<span style="font-weight:700; font-size:0.95rem; color:' + accent + ';">' + label + '</span></div>' +
+'<div style="display:flex; align-items:center; gap:8px;">' +
+'<span style="font-family:\'Outfit\',sans-serif; font-size:1.8rem; font-weight:900; color:' + accent + ';">' + pctStr + '%</span>' +
+'<button onclick="probaCloseMenu()" style="padding:5px 9px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:transparent; color:var(--muted); font-family:inherit;">&#10005;</button>' +
+'</div></div>';
+}
+html += '</div>';
+}
+html += '<div style="display:flex; flex-direction:column; gap:3px;">';
+for (let v = minVal; v <= maxVal; v++) {
+if (!dist[v]) continue;
+const pct = (dist[v] / total * 100);
+const pctStr = pct < 0.1 ? '<0.1' : pct.toFixed(pct >= 10 ? 1 : 2);
+const barW = Math.round(dist[v] / maxCount * 100);
+let barColor = 'linear-gradient(90deg,var(--accent),var(--accent-dim))';
+let rowOpacity = '1';
+let highlight = false;
+if (m && m.mode !== 'pick' && m.mode !== 'range') {
+let inRange = false;
+if (m.mode === 'gte') inRange = v >= m.val;
+else if (m.mode === 'lte') inRange = v <= m.val;
+else if (m.mode === 'range-result') inRange = v >= m.val && v <= m.val2;
+if (!inRange) { rowOpacity = '0.2'; barColor = 'rgba(255,255,255,0.15)'; }
+else {
+highlight = true;
+barColor = m.mode === 'gte' ? 'linear-gradient(90deg,#00d4aa,#00a885)'
+: m.mode === 'lte' ? 'linear-gradient(90deg,#748ffc,#5f3dc4)'
+: 'linear-gradient(90deg,#ffd43b,#fab005)';
+}
+}
+const labelColor = highlight ? (m.mode === 'gte' ? '#00d4aa' : m.mode === 'lte' ? '#748ffc' : '#ffd43b') : 'var(--fg)';
+html += '<div onclick="probaRowClick(' + v + ')" ' +
+'style="display:flex; align-items:center; gap:8px; cursor:pointer; border-radius:6px; padding:2px 4px; transition:background 0.15s; opacity:' + rowOpacity + ';" ' +
+'onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
+'<span style="min-width:32px; text-align:right; font-family:\'Outfit\',sans-serif; font-weight:700; font-size:0.9rem; color:' + labelColor + ';">' + v + '</span>' +
+'<div style="flex:1; height:18px; background:var(--glass); border-radius:4px; overflow:hidden; border:1px solid var(--border);">' +
+'<div style="height:100%; width:' + barW + '%; background:' + barColor + '; border-radius:4px; transition:width 0.3s;"></div></div>' +
+'<span style="min-width:46px; font-size:0.8rem; font-weight:600; color:var(--muted);">' + pctStr + '%</span></div>';
+}
+html += '</div>';
+panel.innerHTML = html;
+if (m && m.mode === 'range') {
+setTimeout(() => { const i = document.getElementById('probaRangeInput'); if(i) i.focus(); }, 30);
+}
+}
+function probaRowClick(val) {
+if (_probaMenu && _probaMenu.mode === 'pick' && _probaMenu.val === val) {
+_probaMenu = null;
+} else {
+_probaMenu = { val, mode: 'pick' };
+}
+_drawProbaRows(document.getElementById('probaPanel'));
+}
+function probaSetMode(mode) {
+if (!_probaMenu) return;
+_probaMenu.mode = mode;
+_probaMenu.val2 = null;
+_drawProbaRows(document.getElementById('probaPanel'));
+}
+function probaApplyRange() {
+const inp = document.getElementById('probaRangeInput');
+if (!inp || !_probaMenu) return;
+const v2 = parseInt(inp.value);
+if (isNaN(v2) || v2 <= _probaMenu.val) return;
+_probaMenu.val2 = Math.min(_probaMax, v2);
+_probaMenu.mode = 'range-result';
+const savedVal = inp.value;
+_drawProbaRows(document.getElementById('probaPanel'));
+// restore input and keep focus for editing
+setTimeout(() => {
+const i = document.getElementById('probaRangeInput');
+if (i) { i.value = savedVal; i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}, 10);
+}
+function probaCloseMenu() {
+_probaMenu = null;
+_drawProbaRows(document.getElementById('probaPanel'));
+}
+function addToHistory(results, total) {
+if (!state.rollHistory) state.rollHistory = [];
+const dice = results.map(r => r.type);
+const values = results.map(r => r.value);
+state.rollHistory.unshift({ dice, values, total, timestamp: Date.now() });
+if (state.rollHistory.length > 1000) state.rollHistory.pop();
+saveState();
+if (state.showHistory) renderHistory();
+}
+function clearRollHistory() {
+state.rollHistory = [];
+saveState();
+renderHistory();
+}
+function renderHistory() {
+const stats = document.getElementById('historyStats');
+const list = document.getElementById('historyList');
+if (!stats || !list) return;
+const h = state.rollHistory || [];
+const numericRolls = h.filter(r => typeof r.total === 'number');
+if (numericRolls.length > 0) {
+const totalSum = numericRolls.reduce((s, r) => s + r.total, 0);
+const avg = (totalSum / numericRolls.length).toFixed(1);
+stats.innerHTML = '<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+'<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Total cumulé</div>' +
+'<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:var(--accent);">' + totalSum + '</div></div>' +
+'<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+'<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Moyenne</div>' +
+'<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:#da77f2;">' + avg + '</div></div>' +
+'<div style="flex:1; background:var(--glass); border:1px solid var(--border); border-radius:10px; padding:10px 12px; text-align:center;">' +
+'<div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;">Lancers</div>' +
+'<div style="font-family:\'Outfit\',sans-serif; font-size:1.4rem; font-weight:900; color:#748ffc;">' + h.length + '</div></div>';
+} else {
+stats.innerHTML = h.length > 0 ? '<div style="color:var(--muted); font-size:0.85rem;">' + h.length + ' lancer' + (h.length > 1 ? 's' : '') + '</div>' : '';
+}
+if (h.length === 0) {
+list.innerHTML = '<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:16px 0;">Aucun lancer enregistré.</div>';
+return;
+}
+list.innerHTML = h.map(function(r, i) {
+const uniqueDice = [...new Set(r.dice)];
+const dicePills = uniqueDice.map(function(type) {
+const count = r.dice.filter(function(d) { return d === type; }).length;
+return '<span style="background:' + (DICE_COLORS[type]||'#888') + '; color:#fff; padding:1px 6px; border-radius:5px; font-size:0.7rem; font-weight:700;">' + (count > 1 ? count + 'x' : '') + type + '</span>';
+}).join('');
+const valDisplay = typeof r.total === 'number'
+? '<span style="font-family:\'Outfit\',sans-serif; font-weight:900; font-size:1.1rem; color:var(--accent);">' + r.total + '</span>'
+: '<span style="font-size:0.8rem; color:var(--muted);">' + r.values.join(', ') + '</span>';
+const detail = typeof r.total === 'number' && r.dice.length > 1
+? r.values.join(' + ') + ' = ' + r.total
+: r.values.join(', ');
+return '<div style="display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--glass); border-radius:8px; border:1px solid var(--border);">' +
+'<span style="font-size:0.75rem; color:var(--muted); min-width:24px; text-align:right; flex-shrink:0;">#' + (h.length - i) + '</span>' +
+'<div style="display:flex; gap:4px; flex-wrap:wrap; flex:1;">' + dicePills + '</div>' +
+'<span style="font-size:0.8rem; color:var(--muted); flex-shrink:0;">' + detail + '</span></div>';
+}).join('');
+}
+// ============ COUNTER LOGIC ============
+function setView(view) {
+state.currentView = view;
+const labels = { grid: 'grille', list: 'liste', circle: 'cercle' };
+document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === labels[view]));
+renderCounters();
+}
+function renderCounters() {
+const container = document.getElementById('counterDisplay');
+updateCurrentListDisplay();
+if (state.counters.length === 0) {
+container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--muted)">Aucun compteur.<br>Ajoutez un joueur pour commencer.</div>`;
+return;
+}
+const leader = state.counters.reduce((max, c) => c.value > max.value ? c : max, state.counters[0]);
+switch(state.currentView) {
+case 'grid': renderGrid(container, leader); break;
+case 'list': renderList(container, leader); break;
+case 'circle': renderCircle(container, leader); break;
+}
+}
+function getContrast(hex) {
+const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+return ((r*299)+(g*587)+(b*114))/1000 >= 128 ? '#000' : '#fff';
+}
+function renderGrid(container, leader) {
+container.innerHTML = `<div class="counter-grid">${state.counters.map(c => `
+<div class="counter-card" style="background:${c.color}">
+<button class="counter-delete-btn" onclick="deleteCounter('${c.id}')">🗑️</button>
+<div class="counter-header" style="color:${getContrast(c.color)}">
+${c.icon ? `<span class="counter-icon">${c.icon}</span>` : ''}
+<span class="counter-name" style="text-align:left;flex:1;cursor:pointer;" onclick="showEditCounterDialog('${c.id}')">${c.name}</span>
+</div>
+<div class="counter-value-container">
+<div class="counter-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.value < 0 ? '' : getContrast(c.color)}; cursor:pointer" onclick="showCounterValueModal('${c.id}')">${c.value}</div>
+</div>
+<div class="counter-buttons">
+<button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', -1)">-1</button>
+<button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', -5)">-5</button>
+<button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', 1)">+1</button>
+<button class="counter-btn" style="color:${getContrast(c.color)}" onclick="updateCounter('${c.id}', 5)">+5</button>
+</div>
+<div class="counter-buttons">
+<button class="counter-btn" style="color:${getContrast(c.color)}; font-size:0.85rem" onclick="showCustomValueDialog('${c.id}', 'subtract')">-?</button>
+<button class="counter-btn" style="color:${getContrast(c.color)}; font-size:0.85rem" onclick="showCustomValueDialog('${c.id}', 'add')">+?</button>
+</div>
+</div>
+`).join('')}</div>`;
+}
+function renderList(container, leader) {
+container.innerHTML = state.counters.map((c, index) => `
+<div class="counter-list-item fade-in">
+<div class="counter-list-actions">
+<button class="reorder-btn" onclick="moveCounter(${index}, -1)" ${index === 0 ? 'disabled style="opacity:0.2"' : ''}>▲</button>
+<button class="reorder-btn" onclick="moveCounter(${index}, 1)" ${index === state.counters.length - 1 ? 'disabled style="opacity:0.2"' : ''}>▼</button>
+</div>
+${c.icon ? `<span class="counter-list-icon">${c.icon}</span>` : ''}
+<span class="counter-list-name" style="cursor:pointer;" onclick="showEditCounterDialog('${c.id}')">${c.name}</span>
+<span class="counter-list-value ${c.value < 0 ? 'negative' : ''}" style="color:${c.color}; cursor:pointer" onclick="showCounterValueModal('${c.id}')">${c.value}</span>
+<div class="counter-list-btns">
+<button class="counter-list-btn" style="background:${c.color}" onclick="updateCounter('${c.id}', -1)">-</button>
+<button class="counter-list-btn" style="background:${c.color}" onclick="updateCounter('${c.id}', 1)">+</button>
+<button class="counter-list-btn custom-btn" style="background:${c.color}">+?</button>
+</div>
+<button class="counter-list-delete" onclick="deleteCounter('${c.id}')">🗑️</button>
+</div>
+`).join('');
+// Add event listeners for custom buttons after rendering
+document.querySelectorAll('.custom-btn').forEach((btn, i) => {
+btn.onclick = () => showCustomValueDialog(state.counters[i].id, 'add');
+});
+}
+function renderCircle(container, leader) {
+const display = state.counters.slice(0, 8);
+const radius = 110;
+const total = state.counters.reduce((s, c) => s + c.value, 0);
+container.innerHTML = `
+<div class="counter-circle-container">
+<div class="counter-circle-center">
+<span style="font-size:1.5rem">🎯</span>
+<span style="font-size:1.2rem; font-weight:700">${total}</span>
+<span style="font-size:0.7rem; color:var(--muted)">Total</span>
+</div>
+${display.map((c, i) => {
+const angle = (2 * Math.PI * i / display.length) - Math.PI / 2;
+const x = 150 + radius * Math.cos(angle);
+const y = 150 + radius * Math.sin(angle);
+return `<div class="counter-circle-node" style="background:${c.color}; left:${x-35}px; top:${y-35}px;"
+onclick="updateCounter('${c.id}', 1)" oncontextmenu="updateCounter('${c.id}', -1); event.preventDefault();">
+<span style="font-size:1.2rem">${c.icon || '👤'}</span>
+<span style="font-weight:700; color:${getContrast(c.color)}">${c.value}</span>
+</div>`;
+}).join('')}
+</div>
+${state.counters.length > 8 ? '<p style="text-align:center; color:var(--muted); font-size:0.8rem; margin-top:16px">+ autres joueurs en vue Liste</p>' : ''}`;
+}
+// Actions
+function sortCountersDesc() {
+saveForUndo();
+state.counters.sort((a, b) => b.value - a.value);
+saveState(); renderCounters();
+}
+function moveCounter(index, direction) {
+const newIndex = index + direction;
+if (newIndex < 0 || newIndex >= state.counters.length) return;
+saveForUndo();
+const temp = state.counters[newIndex];
+state.counters[newIndex] = state.counters[index];
+state.counters[index] = temp;
+saveState(); renderCounters();
+}
+function updateCounter(id, change) {
+saveForUndo();
+const c = state.counters.find(c => c.id === id);
+if (c) { c.value += change; saveState(); renderCounters(); }
+}
+function deleteCounter(id) {
+const c = state.counters.find(c => c.id === id);
+state.pendingDelete = { type: 'counter', id };
+document.getElementById('confirmMessage').textContent = `Supprimer "${c.name}" ?`;
+document.getElementById('confirmOverlay').classList.add('show');
+}
+function resetAllCounters() {
+if (state.counters.length === 0) return;
+state.pendingDelete = { type: 'reset' };
+document.getElementById('confirmMessage').textContent = 'Réinitialiser tous les scores à 0 ?';
+document.getElementById('confirmOverlay').classList.add('show');
+}
+// Dialogs
+const ICON_CATEGORIES = [
+{ label: 'Personnages', icons: ['🧙','🧝','🧛','🦸','🥷','🧚','🧜','🧟','👹','👺','👻','🤴','👸','🧑‍⚔️','🪄','🧿'] },
+{ label: 'Armes & Combat', icons: ['⚔️','🗡️','🏹','🛡️','🪃','🔱','⚙️','💣','🪓','🔫','🧨'] },
+{ label: 'Magie & Mystère', icons: ['🔮','✨','💫','🌀','🔯','☄️','🌙','⭐','💎','🏺','📜','🗺️','🕯️','🔭'] },
+{ label: 'Créatures', icons: ['🐉','🦄','🦁','🐺','🦊','🦅','🐍','🦂','🦇','🐗','🦖','🦕','🐲','🦋','🐙','🦑'] },
+{ label: 'Éléments & Nature', icons: ['🔥','💧','🌿','⚡','🌊','🌪️','🌑','❄️','🌋','💨','🍄','🌸','🍀','☘️','🌾','🪨'] },
+{ label: 'Ressources', icons: ['💰','💎','🪙','🏆','👑','🗝️','📦','🧪','⚗️','🧲','🔑'] },
+{ label: 'Jeux', icons: ['🎲','🎯','🃏','♟️','🀄','🎴','🎪','🎭','🎠','🎡','🎢','🎰'] },
+{ label: 'Points & Vies', icons: ['⭐','🌟','💥','❤️','🖤','💜','💙','💚','💛','🧡','❤️‍🔥','💔'] },
+{ label: 'Lieux', icons: ['🏰','🗼','⛩️','🏯','🕌','🏛️','⛺','🗽','🌉','🏔️','🗻','🏝️'] },
+{ label: 'Objets', icons: ['🎒','🧳','🪬','🧸','🪆','🎁','📿','🪞','🧭','🔍','📊','📯'] },
+];
+function renderIconPicker() {
+return `<div class="icon-section-label">Aucune icône</div><div class="icon-option icon-none selected" onclick="selectIcon(this, null)">∅</div>` +
+ICON_CATEGORIES.map(cat =>
+`<div class="icon-section-label">${cat.label}</div>` +
+cat.icons.map(i => `<div class="icon-option" onclick="selectIcon(this, '${i}')">${i}</div>`).join('')
+).join('');
+}
+function showAddDialog() {
+state.editingCounterId = null;
+document.getElementById('dialogTitle').textContent = 'Ajouter un compteur';
+document.getElementById('counterNameInput').value = '';
+state.selectedIcon = null;
+document.getElementById('iconPicker').innerHTML = renderIconPicker();
+document.getElementById('colorPicker').innerHTML = COLORS.map(c => `<div class="color-option" style="background:${c}" onclick="selectColor('${c}')"></div>`).join('');
+selectColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
+document.getElementById('dialogOverlay').classList.add('show');
+}
+function showEditCounterDialog(id) {
+const c = state.counters.find(c => c.id === id);
+if (!c) return;
+state.editingCounterId = id;
+document.getElementById('dialogTitle').textContent = 'Modifier le compteur';
+document.getElementById('counterNameInput').value = c.name;
+state.selectedIcon = c.icon || null;
+state.selectedColor = c.color;
+document.getElementById('iconPicker').innerHTML = renderIconPicker();
+document.getElementById('colorPicker').innerHTML = COLORS.map(col => `<div class="color-option" style="background:${col}" onclick="selectColor('${col}')"></div>`).join('');
+// Pre-select icon
+if (c.icon) {
+document.querySelectorAll('.icon-option').forEach(o => {
+if (o.textContent === c.icon) o.classList.add('selected');
+});
+}
+// Pre-select color (need to wait for DOM)
+selectColor(c.color);
+document.getElementById('dialogOverlay').classList.add('show');
+}
+function selectColor(c) {
+state.selectedColor = c;
+document.querySelectorAll('.color-option').forEach(o => o.classList.toggle('selected', o.style.background === c));
+const swatch = document.getElementById('colorPreviewSwatch');
+if (swatch) swatch.style.background = c;
+}
+function selectIcon(e, i) { state.selectedIcon = i; document.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected')); e.classList.add('selected'); }
+function saveCounter() {
+const name = document.getElementById('counterNameInput').value.trim();
+if (!name) return alert('Nom requis');
+saveForUndo();
+if (state.editingCounterId) {
+const c = state.counters.find(c => c.id === state.editingCounterId);
+if (c) { c.name = name; c.icon = state.selectedIcon; c.color = state.selectedColor; }
+} else {
+state.counters.push({ id: Date.now().toString(), name, icon: state.selectedIcon, color: state.selectedColor, value: 0 });
+}
+saveState(); closeDialog(); renderCounters();
+}
+function closeDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('dialogOverlay').classList.remove('show'); }
+function showCustomValueDialog(id, mode) {
+state.customValueCounterId = id;
+state.customValueMode = mode || 'add';
+document.getElementById('customValueInput').value = '';
+const title = document.querySelector('#customValueOverlay .dialog-title');
+if (title) title.textContent = mode === 'subtract' ? 'Soustraire un nombre' : 'Ajouter un nombre';
+const validateBtn = document.getElementById('customValueValidateBtn');
+if (validateBtn) {
+if (mode === 'subtract') {
+validateBtn.style.background = 'linear-gradient(135deg,#ff4757,#c0392b)';
+validateBtn.style.color = '#fff';
+validateBtn.innerHTML = '<span style="font-size:1.2rem;">➖</span><span style="font-size:0.8rem;font-weight:700;">Soustraire</span>';
+} else {
+validateBtn.style.background = 'linear-gradient(135deg,#2ecc71,#27ae60)';
+validateBtn.style.color = '#fff';
+validateBtn.innerHTML = '<span style="font-size:1.2rem;">➕</span><span style="font-size:0.8rem;font-weight:700;">Ajouter</span>';
+}
+validateBtn.style.display = 'flex';
+validateBtn.style.flexDirection = 'column';
+validateBtn.style.alignItems = 'center';
+validateBtn.style.gap = '2px';
+validateBtn.style.padding = '10px';
+}
+document.getElementById('customValueOverlay').classList.add('show');
+setTimeout(() => document.getElementById('customValueInput').focus(), 100);
+}
+function showCounterValueModal(id) {
+state.customValueCounterId = id;
+document.getElementById('counterValueModalOverlay').classList.add('show');
+document.getElementById('counterValueModalInput').value = '';
+setTimeout(() => document.getElementById('counterValueModalInput').focus(), 100);
+}
+function applyCounterValueModal(action) {
+const val = parseInt(document.getElementById('counterValueModalInput').value, 10);
+if (isNaN(val)) { closeCounterValueModal(); return; }
+const c = state.counters.find(c => c.id === state.customValueCounterId);
+if (!c) { closeCounterValueModal(); return; }
+saveForUndo();
+if (action === 'set') c.value = val;
+else if (action === 'add') c.value += val;
+else if (action === 'subtract') c.value -= val;
+saveState(); renderCounters();
+closeCounterValueModal();
+}
+function closeCounterValueModal(e) {
+if (!e || e.target === e.currentTarget) document.getElementById('counterValueModalOverlay').classList.remove('show');
+}
+function deleteAllCounters() {
+if (state.counters.length === 0) return alert('Aucun compteur à supprimer');
+if (!confirm('Supprimer TOUS les compteurs ? Cette action est irréversible.')) return;
+saveForUndo();
+state.counters = [];
+state.currentListName = null;
+saveState(); renderCounters();
+}
+function applyCustomValue() {
+const val = parseInt(document.getElementById('customValueInput').value, 10);
+if (!isNaN(val)) {
+const change = state.customValueMode === 'subtract' ? -Math.abs(val) : Math.abs(val);
+updateCounter(state.customValueCounterId, change);
+}
+cancelCustomValue();
+}
+function cancelCustomValue(e) { if(!e || e.target === e.currentTarget) document.getElementById('customValueOverlay').classList.remove('show'); }
+// Confirm Logic
+function cancelConfirm(e) { if(!e || e.target === e.currentTarget) document.getElementById('confirmOverlay').classList.remove('show'); }
+function confirmDelete() {
+saveForUndo();
+if (state.pendingDelete.type === 'counter') state.counters = state.counters.filter(c => c.id !== state.pendingDelete.id);
+else if (state.pendingDelete.type === 'reset') state.counters.forEach(c => c.value = 0);
+saveState(); renderCounters(); cancelConfirm();
+}
+// Save/Load Lists
+function updateCurrentListDisplay() {
+const el = document.getElementById('currentListDisplay');
+el.innerHTML = state.currentListName ? `<span class="current-list-name">📋 ${state.currentListName} <button class="clear-list" onclick="state.currentListName=null; saveState(); updateCurrentListDisplay();">✕</button></span>` : '';
+}
+function showSaveListDialog() {
+if (state.counters.length === 0) return alert('Aucun compteur');
+document.getElementById('saveListNameInput').value = state.currentListName || '';
+renderExistingSaves();
+document.getElementById('saveListOverlay').classList.add('show');
+}
+function renderExistingSaves() {
+const el = document.getElementById('existingSavesContainer');
+if (!el) return;
+if (!state.savedCounterLists || state.savedCounterLists.length === 0) {
+el.innerHTML = '';
+return;
+}
+el.innerHTML = `<div style="margin-bottom:8px;">
+<div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Mettre à jour une sauvegarde</div>
+<div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
+${state.savedCounterLists.map(l => {
+const date = new Date(l.savedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+const isCurrent = l.name === state.currentListName;
+return `<div onclick="selectSaveToUpdate('${l.name}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid ${isCurrent ? 'var(--accent)' : 'var(--border)'};background:${isCurrent ? 'rgba(0,212,170,0.08)' : 'var(--glass)'};cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${isCurrent ? 'var(--accent)' : 'var(--border)'}'">
+<div>
+<div style="font-weight:600;font-size:0.9rem;">${l.name} ${isCurrent ? '<span style="font-size:0.7rem;color:var(--accent);">● actuelle</span>' : ''}</div>
+<div style="font-size:0.75rem;color:var(--muted);">${l.counters.length} compteur${l.counters.length > 1 ? 's' : ''} · ${date}</div>
+</div>
+<span style="font-size:0.8rem;color:var(--muted);">✏️</span>
+</div>`;
+}).join('')}
+</div>
+<div style="height:1px;background:var(--border);margin:12px 0;"></div>
+<div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Nouvelle sauvegarde</div>
+</div>`;
+}
+function selectSaveToUpdate(name) {
+document.getElementById('saveListNameInput').value = name;
+document.getElementById('saveListNameInput').focus();
+}
+function closeSaveListDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('saveListOverlay').classList.remove('show'); }
+function saveCounterList() {
+const name = document.getElementById('saveListNameInput').value.trim();
+if (!name) return alert('Nom requis');
+const data = { id: Date.now().toString(), name, counters: JSON.parse(JSON.stringify(state.counters)), savedAt: new Date().toISOString() };
+const idx = state.savedCounterLists.findIndex(l => l.name === name);
+if (idx >= 0) {
+data.id = state.savedCounterLists[idx].id; // keep same id
+state.savedCounterLists[idx] = data;
+} else {
+state.savedCounterLists.push(data);
+}
+state.currentListName = name;
+saveState(); closeSaveListDialog(); updateCurrentListDisplay();
+}
+function showLoadListDialog() {
+const el = document.getElementById('savedListsContainer');
+el.innerHTML = state.savedCounterLists.length === 0 ? '<div style="color:var(--muted); text-align:center">Aucune liste</div>' :
+state.savedCounterLists.map(l => `<div class="saved-list-item" onclick="loadCounterList('${l.id}')">
+<div><div class="saved-list-name">${l.name}</div><div style="font-size:0.8rem; color:var(--muted)">${l.counters.length} compteurs</div></div>
+<button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem" onclick="event.stopPropagation(); deleteSavedList('${l.id}')">🗑️</button>
+</div>`).join('');
+document.getElementById('loadListOverlay').classList.add('show');
+}
+function closeLoadListDialog(e) { if(!e || e.target === e.currentTarget) document.getElementById('loadListOverlay').classList.remove('show'); }
+function loadCounterList(id) {
+const list = state.savedCounterLists.find(l => l.id === id);
+if (!list) return;
+if (state.counters.length > 0 && !confirm('Remplacer les compteurs actuels ?')) return;
+saveForUndo();
+state.counters = JSON.parse(JSON.stringify(list.counters));
+state.currentListName = list.name;
+saveState(); renderCounters(); updateCurrentListDisplay(); closeLoadListDialog();
+}
+function deleteSavedList(id) {
+if (confirm('Supprimer cette sauvegarde ?')) {
+state.savedCounterLists = state.savedCounterLists.filter(l => l.id !== id);
+saveState(); showLoadListDialog();
+}
+}
+function exportData() {
+const blob = new Blob([JSON.stringify({ counters: state.counters, lists: state.savedCounterLists }, null, 2)], { type: 'application/json' });
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = `mats-tools-backup.json`;
+a.click();
+}
+function importData(e) {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = (ev) => {
+try {
+const data = JSON.parse(ev.target.result);
+if (confirm('Importer ces données ? Cela remplacera les données actuelles.')) {
+saveForUndo();
+if (data.counters) state.counters = data.counters;
+if (data.lists) state.savedCounterLists = data.lists;
+saveState(); renderCounters(); alert('Importé !');
+}
+} catch (err) { alert('Erreur fichier'); }
+};
+reader.readAsText(file);
+e.target.value = '';
+}
+// Dropdown
+function toggleDropdownMenu() { document.getElementById('dropdownMenu').classList.toggle('show'); }
+function closeDropdownMenu() { document.getElementById('dropdownMenu').classList.remove('show'); }
+document.addEventListener('click', e => { if (!e.target.closest('.dropdown-container')) closeDropdownMenu(); });
+// ============ NOTES SAVE/LOAD ============
+function updateNotesCurrentListDisplay() {
+const el = document.getElementById('notesCurrentListDisplay');
+if (!el) return;
+el.innerHTML = state.currentNotesListName
+? `<span class="current-list-name">📋 ${state.currentNotesListName} <button class="clear-list" onclick="state.currentNotesListName=null; saveState(); updateNotesCurrentListDisplay();">✕</button></span>`
+: '';
+}
+function showSaveNotesDialog() {
+if (!state.notes || state.notes.length === 0) return alert('Aucune note à sauvegarder');
+document.getElementById('saveNotesNameInput').value = state.currentNotesListName || '';
+renderExistingNotesSaves();
+document.getElementById('saveNotesOverlay').classList.add('show');
+}
+function renderExistingNotesSaves() {
+const el = document.getElementById('existingNotesSavesContainer');
+if (!el) return;
+if (!state.savedNotesLists || state.savedNotesLists.length === 0) { el.innerHTML = ''; return; }
+el.innerHTML = `<div style="margin-bottom:8px;">
+<div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Mettre à jour une sauvegarde</div>
+<div style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;">
+${state.savedNotesLists.map(l => {
+const date = new Date(l.savedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+const isCurrent = l.name === state.currentNotesListName;
+return `<div onclick="selectNotesSaveToUpdate('${l.name}')" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;border:1px solid ${isCurrent ? 'var(--accent)' : 'var(--border)'};background:${isCurrent ? 'rgba(0,212,170,0.08)' : 'var(--glass)'};cursor:pointer;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${isCurrent ? 'var(--accent)' : 'var(--border)'}'">
+<div>
+<div style="font-weight:600;font-size:0.9rem;">${l.name} ${isCurrent ? '<span style="font-size:0.7rem;color:var(--accent);">● actuelle</span>' : ''}</div>
+<div style="font-size:0.75rem;color:var(--muted);">${l.notes.length} note${l.notes.length > 1 ? 's' : ''} · ${date}</div>
+</div>
+<span style="font-size:0.8rem;color:var(--muted);">✏️</span>
+</div>`;
+}).join('')}
+</div>
+<div style="height:1px;background:var(--border);margin:12px 0;"></div>
+<div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">Nouvelle sauvegarde</div>
+</div>`;
+}
+function selectNotesSaveToUpdate(name) {
+document.getElementById('saveNotesNameInput').value = name;
+document.getElementById('saveNotesNameInput').focus();
+}
+function closeSaveNotesDialog(e) {
+if (!e || e.target === e.currentTarget) document.getElementById('saveNotesOverlay').classList.remove('show');
+}
+function saveNotesList() {
+const name = document.getElementById('saveNotesNameInput').value.trim();
+if (!name) return alert('Nom requis');
+const data = { id: Date.now().toString(), name, notes: JSON.parse(JSON.stringify(state.notes)), savedAt: new Date().toISOString() };
+if (!state.savedNotesLists) state.savedNotesLists = [];
+const idx = state.savedNotesLists.findIndex(l => l.name === name);
+if (idx >= 0) { data.id = state.savedNotesLists[idx].id; state.savedNotesLists[idx] = data; }
+else state.savedNotesLists.push(data);
+state.currentNotesListName = name;
+saveState(); closeSaveNotesDialog(); updateNotesCurrentListDisplay();
+}
+function showLoadNotesDialog() {
+const el = document.getElementById('savedNotesListsContainer');
+if (!state.savedNotesLists || state.savedNotesLists.length === 0) {
+el.innerHTML = '<div style="color:var(--muted); text-align:center; padding:16px;">Aucune sauvegarde</div>';
+} else {
+el.innerHTML = state.savedNotesLists.map(l => `
+<div class="saved-list-item" onclick="loadNotesList('${l.id}')">
+<div>
+<div class="saved-list-name">${l.name}</div>
+<div style="font-size:0.8rem; color:var(--muted)">${l.notes.length} note${l.notes.length > 1 ? 's' : ''} · ${new Date(l.savedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'})}</div>
+</div>
+<button class="btn btn-secondary" style="padding:6px 12px; font-size:0.8rem" onclick="event.stopPropagation(); deleteSavedNotesList('${l.id}')">🗑️</button>
+</div>`).join('');
+}
+document.getElementById('loadNotesOverlay').classList.add('show');
+}
+function closeLoadNotesDialog(e) {
+if (!e || e.target === e.currentTarget) document.getElementById('loadNotesOverlay').classList.remove('show');
+}
+function loadNotesList(id) {
+const list = (state.savedNotesLists || []).find(l => l.id === id);
+if (!list) return;
+if (!confirm(`Charger "${list.name}" ? Les notes actuelles seront remplacées.`)) return;
+state.notes = JSON.parse(JSON.stringify(list.notes));
+state.currentNotesListName = list.name;
+saveState(); renderNotes(); updateNotesCurrentListDisplay(); closeLoadNotesDialog();
+}
+function deleteSavedNotesList(id) {
+if (!confirm('Supprimer cette sauvegarde ?')) return;
+state.savedNotesLists = state.savedNotesLists.filter(l => l.id !== id);
+saveState(); showLoadNotesDialog();
+}
+// ============ NOTES ============
+const NOTE_COLORS = [
+'#fff9c4', '#fce4ec', '#e8f5e9', '#e3f2fd', '#f3e5f5',
+'#fff3e0', '#e0f7fa', '#fbe9e7', '#f1f8e9', '#ede7f6',
+'#ffecb3', '#dcedc8', '#b3e5fc', '#f8bbd0', '#d7ccc8'
+];
+let editingNoteId = null;
+let currentNoteColor = NOTE_COLORS[0];
+function renderNotes() {
+const query = (document.getElementById('notesSearch')?.value || '').toLowerCase().trim();
+const notes = (state.notes || []).filter(n =>
+!query || n.title.toLowerCase().includes(query) || n.body.toLowerCase().includes(query)
+);
+const count = document.getElementById('notesCount');
+const list = document.getElementById('notesList');
+if (count) count.textContent = notes.length === 0 ? '' : `${notes.length} note${notes.length > 1 ? 's' : ''}`;
+if (!list) return;
+if ((state.notes || []).length === 0) {
+list.innerHTML = `<div class="notes-empty"><div class="notes-empty-icon">📝</div><div class="notes-empty-text">Aucune note.<br>Appuyez sur <strong>+</strong> pour commencer.</div></div>`;
+return;
+}
+if (notes.length === 0) {
+list.innerHTML = `<div class="notes-empty"><div class="notes-empty-icon">🔍</div><div class="notes-empty-text">Aucun résultat.</div></div>`;
+return;
+}
+list.innerHTML = `<div class="notes-list">${notes.map(n => {
+const preview = n.body.replace(/\n/g, ' ').trim();
+const date = new Date(n.updatedAt).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
+return `<div class="note-card" style="background:${n.color}" onclick="openNoteEditor('${n.id}')">
+<div class="note-card-header">
+<div class="note-card-title">${escapeHtml(n.title || 'Sans titre')}</div>
+<div class="note-card-actions">
+<button class="note-action-btn danger" onclick="event.stopPropagation(); deleteNote('${n.id}')" title="Supprimer">🗑️</button>
+</div>
+</div>
+${preview ? `<div class="note-card-preview">${escapeHtml(preview)}</div>` : ''}
+<div class="note-card-date">${date}</div>
+</div>`;
+}).join('')}</div>`;
+}
+function escapeHtml(s) {
+return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function openNoteEditor(id) {
+editingNoteId = id;
+const overlay = document.getElementById('noteEditorOverlay');
+const titleInput = document.getElementById('noteEditorTitle');
+const bodyInput = document.getElementById('noteEditorBody');
+if (id) {
+const note = (state.notes || []).find(n => n.id === id);
+if (!note) return;
+titleInput.value = note.title;
+bodyInput.value = note.body;
+currentNoteColor = note.color;
+} else {
+titleInput.value = '';
+bodyInput.value = '';
+currentNoteColor = NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+}
+applyNoteEditorColor(currentNoteColor);
+buildNoteSwatches();
+overlay.classList.add('show');
+setTimeout(() => (id ? bodyInput : titleInput).focus(), 120);
+}
+function buildNoteSwatches() {
+const container = document.getElementById('noteColorSwatches');
+container.innerHTML = NOTE_COLORS.map(c =>
+`<div class="note-swatch ${c === currentNoteColor ? 'active' : ''}" style="background:${c}" onclick="pickNoteColor('${c}')"></div>`
+).join('');
+}
+function pickNoteColor(c) {
+currentNoteColor = c;
+applyNoteEditorColor(c);
+buildNoteSwatches();
+}
+function applyNoteEditorColor(c) {
+const overlay = document.getElementById('noteEditorOverlay');
+overlay.style.background = c;
+}
+function saveNote() {
+const title = document.getElementById('noteEditorTitle').value.trim();
+const body = document.getElementById('noteEditorBody').value.trim();
+if (!title && !body) { closeNoteEditor(); return; }
+if (!state.notes) state.notes = [];
+if (editingNoteId) {
+const note = state.notes.find(n => n.id === editingNoteId);
+if (note) { note.title = title; note.body = body; note.color = currentNoteColor; note.updatedAt = Date.now(); }
+} else {
+state.notes.unshift({ id: Date.now().toString(), title, body, color: currentNoteColor, createdAt: Date.now(), updatedAt: Date.now() });
+}
+saveState();
+closeNoteEditor();
+renderNotes();
+}
+function closeNoteEditor() {
+document.getElementById('noteEditorOverlay').classList.remove('show');
+editingNoteId = null;
+}
+function deleteNote(id) {
+if (!confirm('Supprimer cette note ?')) return;
+state.notes = (state.notes || []).filter(n => n.id !== id);
+saveState(); renderNotes();
+}
+// Close editor on back button (Android)
+window.addEventListener('popstate', () => {
+if (document.getElementById('noteEditorOverlay').classList.contains('show')) closeNoteEditor();
+});
+// ── Redirect 127.0.0.1 → localhost ──
+if (window.location.hostname === '127.0.0.1') {
+window.location.replace(window.location.href.replace('127.0.0.1', 'localhost'));
+}
+// ── Wake Lock: empêcher l'écran de s'éteindre ──
+let wakeLock = null;
+async function requestWakeLock() {
+if ('wakeLock' in navigator) {
+try {
+wakeLock = await navigator.wakeLock.request('screen');
+console.log('[WakeLock] Écran maintenu actif');
+wakeLock.addEventListener('release', () => {
+console.log('[WakeLock] Libéré');
+});
+} catch (err) {
+console.warn('[WakeLock] Impossible:', err.message);
+}
+}
+}
+// Réactiver le wake lock si la page redevient visible (ex: retour d'onglet)
+document.addEventListener('visibilitychange', async () => {
+if (document.visibilityState === 'visible') {
+await requestWakeLock();
+}
+});
+requestWakeLock();
+// Init
+loadState();
+// ── PWA: Service Worker Registration ──
+if ('serviceWorker' in navigator) {
+window.addEventListener('load', () => {
+navigator.serviceWorker.register('sw.js')
+.then(reg => console.log('SW registered:', reg.scope))
+.catch(err => console.warn('SW registration failed:', err));
+});
+}
+// ── PWA: Install Banner ──
+let deferredPrompt = null;
+const installBtn = document.getElementById('pwa-install-btn');
+window.addEventListener('beforeinstallprompt', (e) => {
+e.preventDefault();
+deferredPrompt = e;
+if (installBtn) installBtn.classList.remove('hidden');
+});
+if (installBtn) {
+installBtn.addEventListener('click', async () => {
+if (!deferredPrompt) return;
+deferredPrompt.prompt();
+const { outcome } = await deferredPrompt.userChoice;
+deferredPrompt = null;
+installBtn.classList.add('hidden');
+});
+}
+window.addEventListener('appinstalled', () => {
+deferredPrompt = null;
+if (installBtn) installBtn.classList.add('hidden');
+});
+// ❤️ Support Modal Functions
+function openSupportModal() {
+document.getElementById('supportModalOverlay').classList.add('show');
+}
+function closeSupportModal(e) {
+if (!e || e.target === e.currentTarget) {
+document.getElementById('supportModalOverlay').classList.remove('show');
+}
+}
+// Close support modal with Escape key
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape') {
+const supportModal = document.getElementById('supportModalOverlay');
+if (supportModal && supportModal.classList.contains('show')) {
+closeSupportModal();
+}
+}
+});
+</script>
+</body>
+</html>
