@@ -151,3 +151,4 @@ Vous pouvez aider le projet en :
 ## 📜 Licence
 
 Projet personnel — utilisation libre pour le jeu personnel.
+
